@@ -18,6 +18,8 @@ class DummyVecEnv():
         self.share_observation_space = env.share_observation_space
         self.action_space = env.action_space
         self.actions = None
+        #下面的定义为WSN中独有
+        self.parent_num = env.parent_num
 
     def step(self, actions):
         """

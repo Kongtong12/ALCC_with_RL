@@ -114,10 +114,15 @@ class EnvRunner(Runner):
 
         # replay buffer
         if self.use_centralized_V:
-            share_obs = obs.reshape(self.n_rollout_threads, -1)  # shape = [env_num, agent_num * obs_dim]
+            #下面为WSN环境的定制代码
+            bo_info = obs[:, 0, self.envs.parent_num : 2*self.envs.parent_num]
+            # 提取 ETX 和 上一时刻的父节点选择（不包含 BO 信息）
+            etx_and_prev_parent = np.concatenate([obs[:, :, :self.envs.parent_num], obs[:, :, 2*self.envs.parent_num:]], axis=-1)  # 形状为 [env_num, agent_num, 4]
+            re_etx = etx_and_prev_parent.reshape(self.n_rollout_threads, -1)
+            share_obs = np.concatenate([bo_info,re_etx], axis=1) # shape = [env_num, agent_num * (parent_num+1)+parent_num]
             share_obs = np.expand_dims(share_obs, 1).repeat(
                 self.num_agents, axis=1
-            )  # shape = shape = [env_num, agent_num， agent_num * obs_dim]
+            )
         else:
             share_obs = obs
 
@@ -201,10 +206,19 @@ class EnvRunner(Runner):
         )
         masks = np.ones((self.n_rollout_threads, self.num_agents, 1), dtype=np.float32)
         masks[dones == True] = np.zeros(((dones == True).sum(), 1), dtype=np.float32)
-
+        # this is the key point
         if self.use_centralized_V:
-            share_obs = obs.reshape(self.n_rollout_threads, -1)
-            share_obs = np.expand_dims(share_obs, 1).repeat(self.num_agents, axis=1)
+            #下面为WSN环境的定制代码
+            bo_info = obs[:, 0, self.envs.parent_num : 2*self.envs.parent_num]
+            # 提取 ETX 和 上一时刻的父节点选择（不包含 BO 信息）
+            etx_and_prev_parent = np.concatenate([obs[:, :, :self.envs.parent_num], obs[:, :, 2*self.envs.parent_num:]], axis=-1)  # 形状为 [env_num, agent_num, 4]
+            re_etx = etx_and_prev_parent.reshape(self.n_rollout_threads, -1)
+            share_obs = np.concatenate([bo_info,re_etx], axis=1) # shape = [env_num, agent_num * (parent_num+1)+parent_num]
+            share_obs = np.expand_dims(share_obs, 1).repeat(
+                self.num_agents, axis=1
+            )
+            '''            share_obs = obs.reshape(self.n_rollout_threads, -1)
+            share_obs = np.expand_dims(share_obs, 1).repeat(self.num_agents, axis=1)'''
         else:
             share_obs = obs
 

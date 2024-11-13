@@ -20,6 +20,8 @@ class DiscreteActionEnv(object):
     def __init__(self):
         self.env = EnvCore()
         self.num_agent = self.env.agent_num
+        #下面的定义为WSN独有
+        self.parent_num = self.env.parent_num
 
         self.signal_obs_dim = self.env.obs_dim
         self.signal_action_dim = self.env.action_dim
@@ -34,7 +36,7 @@ class DiscreteActionEnv(object):
         self.observation_space = []
         self.share_observation_space = []
 
-        share_obs_dim = 0
+        share_obs_dim = self.env.parent_num
         total_action_space = []
         for agent_idx in range(self.num_agent):
             # physical action space
@@ -62,7 +64,7 @@ class DiscreteActionEnv(object):
             self.action_space.append(total_action_space[agent_idx])
 
             # observation space
-            share_obs_dim += self.signal_obs_dim
+            share_obs_dim += self.signal_obs_dim - self.parent_num
             self.observation_space.append(
                 spaces.Box(
                     low=-np.inf,

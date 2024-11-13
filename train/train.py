@@ -32,13 +32,13 @@ def make_train_env(all_args):
             # TODO 注意注意，这里选择连续还是离散可以选择注释上面两行，或者下面两行。
             # TODO Important, here you can choose continuous or discrete action space by uncommenting the above two lines or the below two lines.
 
-            from envs.env_continuous import ContinuousActionEnv
+            #from envs.env_continuous import ContinuousActionEnv
 
-            env = ContinuousActionEnv()
+            #env = ContinuousActionEnv()
 
-            # from envs.env_discrete import DiscreteActionEnv
+            from envs.env_discrete import DiscreteActionEnv
 
-            # env = DiscreteActionEnv()
+            env = DiscreteActionEnv()
 
             env.seed(all_args.seed + rank * 1000)
             return env
@@ -53,11 +53,11 @@ def make_eval_env(all_args):
         def init_env():
             # TODO 注意注意，这里选择连续还是离散可以选择注释上面两行，或者下面两行。
             # TODO Important, here you can choose continuous or discrete action space by uncommenting the above two lines or the below two lines.
-            from envs.env_continuous import ContinuousActionEnv
+            #from envs.env_continuous import ContinuousActionEnv
 
-            env = ContinuousActionEnv()
-            # from envs.env_discrete import DiscreteActionEnv
-            # env = DiscreteActionEnv()
+            #env = ContinuousActionEnv()
+            from envs.env_discrete import DiscreteActionEnv
+            env = DiscreteActionEnv()
             env.seed(all_args.seed + rank * 1000)
             return env
 
@@ -79,6 +79,12 @@ def parse_args(args, parser):
 def main(args):
     parser = get_config()
     all_args = parse_args(args, parser)
+
+    # 下面修改默认的参数
+    all_args.share_policy = True
+    all_args.num_agents = 10
+
+
 
     if all_args.algorithm_name == "rmappo":
         assert all_args.use_recurrent_policy or all_args.use_naive_recurrent_policy, "check recurrent policy!"

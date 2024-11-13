@@ -1,6 +1,6 @@
 import numpy as np
 
-
+#问题：如果这里numpy整数和小数做乘除会怎样，比如self.pi = np.ones(self.agent_num)
 class EnvCore(object):
     """
     # 环境中的智能体
@@ -33,7 +33,7 @@ class EnvCore(object):
         self.xi_out = np.array([10.,10.,10.])
 
         # 初始化智能体的上一个父节点选择，随机分配或设为 -1（表示初始状态）
-        self.prev_parent = np.full(self.agent_num, -1)  # -1 表示未选择任何父节点
+        self.prev_parent = np.zeros([self.agent_num, self.parent_num])  # -1 表示未选择任何父节点
 
         #开始时刻，初始化所有leaf node的发送速率为0
         self.sending_rates = np.zeros(self.agent_num)  # 所有智能体的发送速率
@@ -58,7 +58,7 @@ class EnvCore(object):
         self.current_parent = actions
 
         # 计算切换惩罚
-        switch_penalty = (self.current_parent != self.prev_parent).astype(np.float32)
+        switch_penalty = np.all(self.current_parent == self.prev_parent, axis=1).astype(np.float32)
         self.prev_parent = self.current_parent.copy()
 
         # 更新 ETX（可加入动态变化，此处简单模拟随机波动）注意，在这里需要设置偏好
@@ -69,7 +69,11 @@ class EnvCore(object):
         # 更新上一个时间节点进入父节点的Bo,发送速率,奖励
         self._update_bo()
         self._compute_sending_rates()
+        # 下面做一下简单尝试 
         rewards = self._compute_rewards(switch_penalty)
+        '''rewards1 = []
+        for i in range(self.agent_num):
+            rewards1.append([np.random.rand()])'''
         # 获取新的观测
         obs = self._get_obs()
         dones = [False] * self.agent_num
@@ -107,7 +111,7 @@ class EnvCore(object):
             prev_parent_obs = np.array([self.prev_parent[i]])  # 形状为 (1,)
 
             # 拼接观测向量
-            obs = np.concatenate([etx_obs, bo_obs, prev_parent_obs])
+            obs = np.concatenate([etx_obs, bo_obs, np.argmax(prev_parent_obs, axis=1)])
 
             obs_n.append(obs)
 
@@ -117,11 +121,12 @@ class EnvCore(object):
         """
         计算智能体的最优发送速率
         """
-        counts = np.bincount(self.current_parent, minlength=self.parent_num)
+        current_parent = np.argmax(self.current_parent, axis=1)
+        counts = np.bincount(current_parent, minlength=self.parent_num)
         # 下面为计算的过程
         counts_w2 = counts * self.w2 / (self.xi_out + 1)
         for i in range(self.agent_num):
-            parent_idx = self.current_parent[i]
+            parent_idx = current_parent[i]
             if (counts_w2[parent_idx] + self.w3 * self.pi[i] >= self.w1):
                 self.sending_rates[i] = 0
             elif (counts_w2[parent_idx] + self.w3 * self.pi[i] <= self.w1 / (1 + self.xi_max[i])):
@@ -136,11 +141,11 @@ class EnvCore(object):
         """
         # 重置 BO
         self.bo = np.zeros(self.parent_num)
-
+        current_parent = np.argmax(self.current_parent, axis=1)
         # 累加每个父节点接收到的发送速率
         for j in range(self.parent_num):
             # 获取选择了父节点 j 的智能体索引
-            agents_selecting_j = np.where(self.current_parent == j)[0]
+            agents_selecting_j = np.where(current_parent == j)[0]
 
             # 累加这些智能体的发送速率
             total_rate = np.sum(self.sending_rates[agents_selecting_j])
@@ -167,8 +172,9 @@ class EnvCore(object):
         W1 = 0.5  # ETX 的权重
         W2 = 0.5  # BO 的权重
 
+        current_parent = np.argmax(self.current_parent, axis=1)
         for i in range(self.agent_num):
-            parent_idx = self.current_parent[i]
+            parent_idx = current_parent[i]
 
             # 计算 OF1
             of1 = W1 * self.etx[i, parent_idx] + W2 * self.bo[parent_idx]
@@ -179,7 +185,7 @@ class EnvCore(object):
             # 计算奖励
             reward = alpha * of1 + beta * omega_i - gamma * switch_penalty[i]
 
-            rewards.append(reward)
+            rewards.append([reward])
 
         return rewards
     
@@ -195,13 +201,15 @@ class EnvCore(object):
         返回:
         - omega_i: 智能体的发送速率部分的收益
         """
+
+        current_parent = np.argmax(self.current_parent, axis=1)
         # 获取连接到该父节点的智能体数量 n
-        n = np.sum(self.current_parent == parent_idx)
+        n = np.sum(current_parent == parent_idx)
 
         xi_out = self.xi_out[parent_idx] # 特定parent node的传输速率
 
         # 计算 Omega_i
-        numerator = np.sum(self.sending_rates[self.current_parent == parent_idx]) + 1
+        numerator = np.sum(self.sending_rates[current_parent == parent_idx]) + 1
         denominator = xi_out + 1
 
         omega_i = self.w1 * np.log(self.sending_rates[agent_idx] + 1) \

@@ -179,6 +179,7 @@ def get_config():
         default=True,
         help="by default, make sure random seed effective. if set, bypass such function.",
     )
+    #这里对线程的设置对实验有什么影响
     parser.add_argument(
         "--n_training_threads",
         type=int,
@@ -203,6 +204,7 @@ def get_config():
         default=1,
         help="Number of parallel envs for rendering rollouts",
     )
+    #这个参数可以看一下
     parser.add_argument(
         "--num_env_steps",
         type=int,
@@ -229,6 +231,7 @@ def get_config():
     parser.add_argument("--episode_length", type=int, default=200, help="Max length for any episode")
 
     # network parameters
+    #在训练的时候可以考虑将其改为True
     parser.add_argument(
         "--share_policy",
         action="store_false",
