@@ -15,10 +15,10 @@ class EnvCore(object):
 
         self.pi = np.ones(self.agent_num) # 每个节点的优先级，用于计算收益。在这里简化为所有节点拥有相同的优先级
         #下面定义的是选择父亲节点后，leaf node的payoff function
-        self.w1 = 1.
-        self.w2 = 1.
-        self.w3 = 1.
-        self.xi_max = np.full(self.agent_num,6.0) # 这里设置了每个节点的最大传输速率
+        self.w1 = 15.
+        self.w2 = 3.
+        self.w3 = 0.9
+        self.xi_max = np.full(self.agent_num,8.0) # 这里设置了每个节点的最大传输速率
 
     def reset(self):
         """
@@ -30,7 +30,7 @@ class EnvCore(object):
         # 初始化 BO 值（上一个时刻进入父节点的流量），初始化为 0
         self.bo = np.zeros(self.parent_num)
         #初始化每个父亲节点的最大传输速率
-        self.xi_out = np.array([10.,10.,10.])
+        self.xi_out = np.array([15.,15.,15.])
 
         # 初始化智能体的上一个父节点选择，随机分配或设为 -1（表示初始状态）
         self.prev_parent = np.zeros([self.agent_num, self.parent_num])  # -1 表示未选择任何父节点
@@ -169,8 +169,8 @@ class EnvCore(object):
         beta = 1.0
         gamma = 1.0
 
-        W1 = 0.5  # ETX 的权重
-        W2 = 0.5  # BO 的权重
+        W1 = 0.8  # ETX 的权重
+        W2 = 0.2  # BO 的权重
 
         current_parent = np.argmax(self.current_parent, axis=1)
         for i in range(self.agent_num):
