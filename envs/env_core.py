@@ -149,8 +149,8 @@ class EnvCore(object):
 
             # 累加这些智能体的发送速率
             total_rate = np.sum(self.sending_rates[agents_selecting_j])
-
-            self.bo[j] = total_rate / self.xi_out[j]
+            # 修改了bo的计算方式
+            self.bo[j] = min(total_rate, self.xi_out[j]) / self.xi_out[j]
 
     def _compute_rewards(self, switch_penalty):
         """
@@ -165,12 +165,12 @@ class EnvCore(object):
         rewards = []
 
         # 奖励参数
-        alpha = 1.0
+        alpha = -1.0
         beta = 1.0
         gamma = 1.0
 
-        W1 = 0.8  # ETX 的权重
-        W2 = 0.2  # BO 的权重
+        W1 = 0.4  # ETX 的权重
+        W2 = 0.6  # BO 的权重
 
         current_parent = np.argmax(self.current_parent, axis=1)
         for i in range(self.agent_num):
@@ -216,3 +216,30 @@ class EnvCore(object):
                   - self.w2 * n * (numerator / denominator) \
                   - self.w3 * self.pi[agent_idx] * self.sending_rates[agent_idx]
         return omega_i
+    
+    def take_action(self):
+        """
+        选择动作，使用矩阵运算优化性能
+
+        返回:
+        - actions: 智能体选择的父节点的one-hot编码矩阵 (agent_num, parent_num)
+        """
+        # 计算所有智能体的OF1值矩阵 (agent_num, parent_num)
+        of1_values = 0.4 * self.etx + 0.6 * self.bo[np.newaxis, :]
+        
+        # 为所有智能体创建切换惩罚矩阵
+        prev_parents = np.argmax(self.prev_parent, axis=1)
+        switch_penalty = np.ones((self.agent_num, self.parent_num))
+        switch_penalty -= self.prev_parent
+        
+        # 添加切换惩罚
+        of1_values += switch_penalty
+        
+        # 找到每个智能体的最优父节点
+        best_parents = np.argmin(of1_values, axis=1)
+        
+        # 创建one-hot编码矩阵
+        actions = np.zeros((self.agent_num, self.parent_num))
+        actions[np.arange(self.agent_num), best_parents] = 1
+        
+        return actions
