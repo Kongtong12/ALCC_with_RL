@@ -24,7 +24,6 @@ class EnvRunner(Runner):
         super(EnvRunner, self).__init__(config)
 
     def run(self):
-        self.warmup()
 
         start = time.time()
         episodes = int(self.num_env_steps) // self.episode_length // self.n_rollout_threads
@@ -32,6 +31,8 @@ class EnvRunner(Runner):
         for episode in range(episodes):
             if self.use_linear_lr_decay:
                 self.trainer.policy.lr_decay(episode, episodes)
+
+            self.warmup()
 
             for step in range(self.episode_length):
                 # Sample actions

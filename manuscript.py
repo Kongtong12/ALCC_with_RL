@@ -1,5 +1,5 @@
 import numpy as np
-import env_core
+from envs import env_core
 env = env_core.EnvCore()
 # 训练循环
 num_epochs = 50

@@ -29,7 +29,7 @@ sys.path.append(parent_dir)
 
 from config import get_config
 
-checkpoint = torch.load(r'D:\learning\reinforcement_learning\light_mappo\results\MyEnv\MyEnv\mappo\check\run27\models\actor.pt', map_location=torch.device('cuda'))
+checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run36\models\actor.pt', map_location=torch.device('cuda'))
 if isinstance(checkpoint, dict):
     if 'state_dict' in checkpoint:
         state_dict = checkpoint['state_dict']
@@ -54,8 +54,6 @@ recurrent_N = all_args.recurrent_N
 hidden_size = all_args.hidden_size
 
 env = DiscreteActionEnv()
-env.seed(all_args.seed)
-obs = env.reset()
 
 actor = R_Actor(all_args, env.observation_space[0], env.action_space[0], device=torch.device('cuda'))
 actor.load_state_dict(state_dict)
@@ -68,8 +66,22 @@ eval_episode_rewards = []
 rnn_states = np.zeros((episode_length + 1, n_rollout_threads, num_agents, recurrent_N, hidden_size),dtype=np.float32).shape[2:]
 eval_rnn_states = np.zeros((1, *rnn_states),dtype=np.float32)
 eval_masks = np.ones((n_rollout_threads, num_agents, 1), dtype=np.float32)
-# 以下是一个episode的循环
-for step in range(episode_length):
-    actions, _,rnn_states = actor(obs, eval_rnn_states, eval_masks, deterministic=True,)
-    actions = _t2n(actions)
-    print(actions)
+
+epoch_rewards = []
+for epoch in range(50):
+    obs = env.reset()
+    total_rewards = 0
+    # 以下是一个episode的循环
+    for step in range(episode_length):
+        actions, _,rnn_states = actor(obs, eval_rnn_states, eval_masks, deterministic=True,)
+        actions = _t2n(actions)
+        actions_env = np.squeeze(np.eye(env.action_space[0].n)[actions], 1)
+        obs, rewards, dones, infos = env.step(actions_env)
+        total_rewards += np.average(rewards)
+        '''if total_rewards < -1000:
+            print("total_rewards:", total_rewards)'''
+    print(f"Epoch {epoch + 1}/{50}, Average Reward: {total_rewards:.4f}")
+    epoch_rewards.append(total_rewards)
+print("average_rewards:", np.average(epoch_rewards))
+
+
