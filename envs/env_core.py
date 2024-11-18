@@ -150,7 +150,8 @@ class EnvCore(object):
             # 累加这些智能体的发送速率
             total_rate = np.sum(self.sending_rates[agents_selecting_j])
             # 修改了bo的计算方式
-            self.bo[j] = min(total_rate, self.xi_out[j]) / self.xi_out[j]
+
+            self.bo[j] = total_rate / self.xi_out[j]
 
     def _compute_rewards(self, switch_penalty):
         """
@@ -176,8 +177,10 @@ class EnvCore(object):
         for i in range(self.agent_num):
             parent_idx = current_parent[i]
 
+            #这里我希望对self.bo进行更新，使得若某一个位置大于1，则将其设置为1
+            bo = np.minimum(self.bo,1)
             # 计算 OF1
-            of1 = W1 * self.etx[i, parent_idx] + W2 * self.bo[parent_idx]
+            of1 = W1 * self.etx[i, parent_idx] + W2 * bo[parent_idx]
 
             # 计算 Omega_i（此处简化处理）
             omega_i = self._compute_omega_i(i, parent_idx)
