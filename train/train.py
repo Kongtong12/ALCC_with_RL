@@ -26,9 +26,9 @@ from envs.env_wrappers import DummyVecEnv
 """Train script for MPEs."""
 
 
-def make_train_env(all_args):
-    def get_env_fn(rank):
-        def init_env():
+def make_train_env(all_args, env_params):
+    def get_env_fn(rank, env_params):
+        def init_env(env_params = env_params):
             # TODO 注意注意，这里选择连续还是离散可以选择注释上面两行，或者下面两行。
             # TODO Important, here you can choose continuous or discrete action space by uncommenting the above two lines or the below two lines.
 
@@ -38,14 +38,14 @@ def make_train_env(all_args):
 
             from envs.env_discrete import DiscreteActionEnv
 
-            env = DiscreteActionEnv()
+            env = DiscreteActionEnv(**env_params)
 
             env.seed(all_args.seed + rank * 1000)
             return env
 
         return init_env
 
-    return DummyVecEnv([get_env_fn(i) for i in range(all_args.n_rollout_threads)])
+    return DummyVecEnv([get_env_fn(i, env_params) for i in range(all_args.n_rollout_threads)])
 
 
 def make_eval_env(all_args):
@@ -75,6 +75,17 @@ def parse_args(args, parser):
 
     return all_args
 
+def get_env_params(agent_num = 10, alpha=-1.0, beta=1.0, gamma=1.0, W1=0.4, W2=0.6):
+    params = {
+        'agent_num': agent_num,  # 智能体数量
+        'alpha': alpha,  # 奖励参数 alpha
+        'beta': beta,    # 奖励参数 beta
+        'gamma': gamma,  # 奖励参数 gamma
+        'W1': W1,        # ETX 的权重
+        'W2': W2         # BO 的权重
+    }
+    return params
+
 
 def main(args):
     parser = get_config()
@@ -82,11 +93,11 @@ def main(args):
 
     # 下面修改默认的参数
     all_args.share_policy = True
-    all_args.num_agents = 10
+    all_args.num_agents = 9
     '''all_args.algorithm_name = "rmappo"
     all_args.use_recurrent_policy = True'''
     all_args.num_env_steps = 3* 1e5
-    all_args.use_eval = True
+    #all_args.use_eval = True
 
 
     if all_args.algorithm_name == "rmappo":
@@ -158,9 +169,11 @@ def main(args):
     np.random.seed(all_args.seed)
 
     # env init
-    envs = make_train_env(all_args)
-    eval_envs = make_eval_env(all_args) if all_args.use_eval else None
     num_agents = all_args.num_agents
+    env_params = get_env_params(agent_num=num_agents)
+    envs = make_train_env(all_args, env_params)
+    eval_envs = make_eval_env(all_args) if all_args.use_eval else None
+
 
     config = {
         "all_args": all_args,

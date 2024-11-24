@@ -6,9 +6,9 @@ class EnvCore(object):
     # 环境中的智能体
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.if_rand_pi = True # 是否随机初始化优先级
-        self.agent_num = 10  # 设置智能体的个数，leaf node的数量为10
+        self.agent_num = kwargs.get('agent_num', 10)  # 设置智能体的个数，leaf node的数量为10
         self.parent_num = 3  # 父节点数量
         if self.if_rand_pi:
             self.obs_dim = 2 * self.parent_num + 2  # 每个parent node对应的ETX，bo,自身的优先级,上一个时刻的parent node选择
@@ -23,6 +23,13 @@ class EnvCore(object):
         self.w2 = 3.
         self.w3 = 0.9
         self.xi_max = np.full(self.agent_num,8.0) # 这里设置了每个节点的最大传输速率
+
+        # 初始化奖励参数，使用kwargs传递
+        self.alpha = kwargs.get('alpha', -1.0)
+        self.beta = kwargs.get('beta', 1.0)
+        self.gamma = kwargs.get('gamma', 1.0)
+        self.W1 = kwargs.get('W1', 0.4)
+        self.W2 = kwargs.get('W2', 0.6)
         
 
     def reset(self):
@@ -180,14 +187,6 @@ class EnvCore(object):
         """
         rewards = []
 
-        # 奖励参数
-        alpha = -1.0
-        beta = 1.0
-        gamma = 1.0
-
-        W1 = 0.4  # ETX 的权重
-        W2 = 0.6  # BO 的权重
-
         current_parent = np.argmax(self.current_parent, axis=1)
         for i in range(self.agent_num):
             parent_idx = current_parent[i]
@@ -195,13 +194,13 @@ class EnvCore(object):
             #这里我希望对self.bo进行更新，使得若某一个位置大于1，则将其设置为1
             bo = np.minimum(self.bo,1)
             # 计算 OF1
-            of1 = W1 * self.etx[i, parent_idx] + W2 * bo[parent_idx]
+            of1 = self.W1 * self.etx[i, parent_idx] + self.W2 * bo[parent_idx]
 
             # 计算 Omega_i（此处简化处理）
             omega_i = self._compute_omega_i(i, parent_idx)
 
             # 计算奖励
-            reward = alpha * of1 + beta * omega_i - gamma * switch_penalty[i]
+            reward = self.alpha * of1 + self.beta * omega_i - self.gamma * switch_penalty[i]
 
             rewards.append([reward])
 
