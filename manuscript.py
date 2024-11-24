@@ -1,10 +1,15 @@
 import numpy as np
 from envs import env_core
+from scipy.stats import gaussian_kde
+import matplotlib.pyplot as plt
+
+
 env = env_core.EnvCore()
 # 训练循环
 num_epochs = 50
 steps_per_epoch = 200
 epoch_rewards = []
+total_bo = []
 
 for epoch in range(num_epochs):
     # 重置环境
@@ -20,8 +25,9 @@ for epoch in range(num_epochs):
         next_state, reward, done, info = env.step(actions)
         
         # 累积奖励
-        if step>0:
+        if step:
             epoch_reward += np.average(reward)
+            total_bo.append(next_state[0][3:6])
         
         # 更新状态
         state = next_state
@@ -32,5 +38,42 @@ for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs}, Average Reward: {epoch_reward:.4f}")
 
 # 输出总体训练结果
-print(f"\nTraining completed!")
+#print(f"\nTraining completed!")
 print(f"Final average reward: {np.mean(epoch_rewards):.4f}")
+
+# 使用KDE绘制平滑的密度分布曲线
+flat_bo = np.array(total_bo).flatten()
+density = gaussian_kde(flat_bo)
+xs = np.linspace(flat_bo.min(), flat_bo.max(), 200)
+plt.figure(figsize=(10, 6))
+plt.plot(xs, density(xs), 'b-', lw=2)
+plt.fill_between(xs, density(xs), alpha=0.2)
+plt.xlabel('Values')
+plt.ylabel('Density')
+plt.title('Smooth Distribution of BO values')
+plt.grid(True, alpha=0.3)
+plt.show()
+# 定义区间
+bins = [(0, 0.4), (0.4, 0.8), (0.8, 1.2), (1.2, 1.6), (1.6, 2.0), (2.0, float('inf'))]
+labels = ['0-0.4', '0.4-0.8', '0.8-1.2', '1.2-1.6', '1.6-2.0', '>2']
+
+# 计算每个区间的数据占比
+total_count = len(flat_bo)
+percentages = []
+
+for start, end in bins:
+    count = np.sum((flat_bo >= start) & (flat_bo < end))
+    percentage = (count / total_count) * 100
+    percentages.append(percentage)
+
+print(percentages)
+# 绘制柱状图
+# plt.figure(figsize=(10, 6))
+# plt.bar(labels, percentages)
+# plt.xlabel('BO Value Ranges')
+# plt.ylabel('Percentage (%)')
+# plt.title('Distribution of BO Values by Range')
+# plt.xticks(rotation=45)
+# plt.grid(True, alpha=0.3)
+# plt.tight_layout()
+# plt.show()

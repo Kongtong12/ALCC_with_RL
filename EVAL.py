@@ -1,5 +1,6 @@
 import sys
 import os
+os.environ['KMP_DUPLICATE_LIB_OK']='True' # 为了防止OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized.
 import socket
 import setproctitle
 import numpy as np
@@ -7,6 +8,8 @@ from pathlib import Path
 import torch
 from envs.env_discrete import DiscreteActionEnv
 from algorithms.algorithm.r_actor_critic import R_Actor
+import matplotlib.pyplot as plt
+from scipy.stats import gaussian_kde
 
 def _t2n(x):
     return x.detach().cpu().numpy()
@@ -54,6 +57,7 @@ n_rollout_threads = 1
 num_agents = 10
 recurrent_N = all_args.recurrent_N
 hidden_size = all_args.hidden_size
+parent_num = 3
 
 env = DiscreteActionEnv()
 
@@ -70,6 +74,7 @@ eval_rnn_states = np.zeros((1, *rnn_states),dtype=np.float32)
 eval_masks = np.ones((n_rollout_threads, num_agents, 1), dtype=np.float32)
 
 epoch_rewards = []
+total_bo = []
 for epoch in range(50):
     obs = env.reset()
     total_rewards = 0
@@ -79,11 +84,50 @@ for epoch in range(50):
         actions = _t2n(actions)
         actions_env = np.squeeze(np.eye(env.action_space[0].n)[actions], 1)
         obs, rewards, dones, infos = env.step(actions_env)
+        if step:
+            total_bo.append(obs[0][parent_num:2*parent_num])
         total_rewards += np.average(rewards)
         '''if total_rewards < -1000:
             print("total_rewards:", total_rewards)'''
     print(f"Epoch {epoch + 1}/{50}, Average Reward: {total_rewards:.4f}")
     epoch_rewards.append(total_rewards)
 print("average_rewards:", np.average(epoch_rewards))
+# 使用KDE绘制平滑的密度分布曲线
+flat_bo = np.array(total_bo).flatten()
+density = gaussian_kde(flat_bo)
+xs = np.linspace(flat_bo.min(), flat_bo.max(), 200)
+plt.figure(figsize=(10, 6))
+plt.plot(xs, density(xs), 'b-', lw=2)
+plt.fill_between(xs, density(xs), alpha=0.2)
+plt.xlabel('Values')
+plt.ylabel('Density')
+plt.title('Smooth Distribution of BO values')
+plt.grid(True, alpha=0.3)
+plt.show()
 
 
+
+# 定义区间
+bins = [(0, 0.4), (0.4, 0.8), (0.8, 1.2), (1.2, 1.6), (1.6, 2.0), (2.0, float('inf'))]
+labels = ['0-0.4', '0.4-0.8', '0.8-1.2', '1.2-1.6', '1.6-2.0', '>2']
+
+# 计算每个区间的数据占比
+total_count = len(flat_bo)
+percentages = []
+
+for start, end in bins:
+    count = np.sum((flat_bo >= start) & (flat_bo < end))
+    percentage = (count / total_count) * 100
+    percentages.append(percentage)
+
+print(percentages)
+# 绘制柱状图
+# plt.figure(figsize=(10, 6))
+# plt.bar(labels, percentages)
+# plt.xlabel('BO Value Ranges')
+# plt.ylabel('Percentage (%)')
+# plt.title('Distribution of BO Values by Range')
+# plt.xticks(rotation=45)
+# plt.grid(True, alpha=0.3)
+# plt.tight_layout()
+# plt.show()
