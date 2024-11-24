@@ -7,9 +7,13 @@ class EnvCore(object):
     """
 
     def __init__(self):
+        self.if_rand_pi = True # 是否随机初始化优先级
         self.agent_num = 10  # 设置智能体的个数，leaf node的数量为10
         self.parent_num = 3  # 父节点数量
-        self.obs_dim = 2 * self.parent_num + 1  # 每个parent node对应的ETX，bo,上一个时刻的parent node选择
+        if self.if_rand_pi:
+            self.obs_dim = 2 * self.parent_num + 2  # 每个parent node对应的ETX，bo,自身的优先级,上一个时刻的parent node选择
+        else:
+            self.obs_dim = 2 * self.parent_num + 1
         self.action_dim = self.parent_num  # 设置智能体的动作维度，这里对应parent node的个数
 
 
@@ -19,6 +23,7 @@ class EnvCore(object):
         self.w2 = 3.
         self.w3 = 0.9
         self.xi_max = np.full(self.agent_num,8.0) # 这里设置了每个节点的最大传输速率
+        
 
     def reset(self):
         """
@@ -37,6 +42,10 @@ class EnvCore(object):
 
         #开始时刻，初始化所有leaf node的发送速率为0
         self.sending_rates = np.zeros(self.agent_num)  # 所有智能体的发送速率
+
+        # 初始化每个智能体的优先级，在1到3之间连续选择，形状为 (parent_num,)
+        if self.if_rand_pi:
+            self.pi = np.random.randint(1, 4, size=self.agent_num)
 
         # 返回初始观测
         return self._get_obs()
@@ -107,11 +116,17 @@ class EnvCore(object):
             # 获取所有父节点的 BO 值
             bo_obs = self.bo  # 形状为 (parent_num,)
 
+            # 获取智能体的优先级
+            pi_obs = self.pi[i]
+
             # 获取智能体的上一个父节点选择
             prev_parent_obs = np.array([self.prev_parent[i]])  # 形状为 (1,)
 
             # 拼接观测向量
-            obs = np.concatenate([etx_obs, bo_obs, np.argmax(prev_parent_obs, axis=1)])
+            if self.if_rand_pi:
+                obs = np.concatenate([etx_obs, bo_obs, np.array([pi_obs]), np.argmax(prev_parent_obs, axis=1)])
+            else:
+                obs = np.concatenate([etx_obs, bo_obs, np.argmax(prev_parent_obs, axis=1)])
 
             obs_n.append(obs)
 

@@ -29,7 +29,9 @@ sys.path.append(parent_dir)
 
 from config import get_config
 
-checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run36\models\actor.pt', map_location=torch.device('cuda'))
+# checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run36\models\actor.pt', map_location=torch.device('cuda'))
+checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run43\models\actor.pt', map_location=torch.device('cuda'))
+# laptop段41,43较好
 if isinstance(checkpoint, dict):
     if 'state_dict' in checkpoint:
         state_dict = checkpoint['state_dict']
@@ -73,7 +75,7 @@ for epoch in range(50):
     total_rewards = 0
     # 以下是一个episode的循环
     for step in range(episode_length):
-        actions, _,rnn_states = actor(obs, eval_rnn_states, eval_masks, deterministic=True,)
+        actions, _,rnn_states = actor(obs, eval_rnn_states, eval_masks, deterministic=False,)
         actions = _t2n(actions)
         actions_env = np.squeeze(np.eye(env.action_space[0].n)[actions], 1)
         obs, rewards, dones, infos = env.step(actions_env)
