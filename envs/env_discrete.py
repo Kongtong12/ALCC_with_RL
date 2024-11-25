@@ -90,6 +90,9 @@ class DiscreteActionEnv(object):
     def seed(self, seed):
         pass
 
+    def get_reward(self):
+        return self.env.get_reward()
+
 
 class MultiDiscrete:
     """

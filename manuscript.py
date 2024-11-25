@@ -3,18 +3,35 @@ from envs import env_core
 from scipy.stats import gaussian_kde
 import matplotlib.pyplot as plt
 
+def get_env_params(agent_num = 10, alpha=-1.0, beta=1.0, gamma=0.2, W1=0.4, W2=0.6):
+    params = {
+        'agent_num': agent_num,  # 智能体数量
+        'alpha': alpha,  # 奖励参数 alpha
+        'beta': beta,    # 奖励参数 beta
+        'gamma': gamma,  # 奖励参数 gamma
+        'W1': W1,        # ETX 的权重
+        'W2': W2         # BO 的权重
+    }
+    return params
 
-env = env_core.EnvCore()
+params = get_env_params(agent_num = 10, alpha=-1.0, beta=1.0, gamma=0.2, W1=0.4, W2=0.6)
+env = env_core.EnvCore(**params)
 # 训练循环
 num_epochs = 50
 steps_per_epoch = 200
 epoch_rewards = []
+epoch_rewards_1 = []
+epoch_rewards_2 = []
+epoch_rewards_3 = []
 total_bo = []
 
 for epoch in range(num_epochs):
     # 重置环境
     state = env.reset()
     epoch_reward = 0
+    epoch_reward_1 = 0
+    epoch_reward_2 = 0
+    epoch_reward_3 = 0
     
     # 执行时间步
     for step in range(steps_per_epoch):
@@ -23,10 +40,14 @@ for epoch in range(num_epochs):
         
         # 执行动作并获取奖励
         next_state, reward, done, info = env.step(actions)
+        reward_1, reward_2, reward_3 = env.get_reward()
         
         # 累积奖励
         if step:
             epoch_reward += np.average(reward)
+            epoch_reward_1 += np.average(reward_1)
+            epoch_reward_2 += np.average(reward_2)
+            epoch_reward_3 += np.average(reward_3)
             total_bo.append(next_state[0][3:6])
         
         # 更新状态
@@ -34,12 +55,18 @@ for epoch in range(num_epochs):
     
     # 计算该epoch的平均奖励
     epoch_rewards.append(epoch_reward)
+    epoch_rewards_1.append(epoch_reward_1)
+    epoch_rewards_2.append(epoch_reward_2)
+    epoch_rewards_3.append(epoch_reward_3)
     
     print(f"Epoch {epoch + 1}/{num_epochs}, Average Reward: {epoch_reward:.4f}")
 
 # 输出总体训练结果
 #print(f"\nTraining completed!")
 print(f"Final average reward: {np.mean(epoch_rewards):.4f}")
+print(f"Final average reward_1: {np.mean(epoch_rewards_1):.4f}")
+print(f"Final average reward_2: {np.mean(epoch_rewards_2):.4f}")
+print(f"Final average reward_3: {np.mean(epoch_rewards_3):.4f}")
 
 # 使用KDE绘制平滑的密度分布曲线
 flat_bo = np.array(total_bo).flatten()
@@ -53,20 +80,20 @@ plt.ylabel('Density')
 plt.title('Smooth Distribution of BO values')
 plt.grid(True, alpha=0.3)
 plt.show()
-# 定义区间
-bins = [(0, 0.4), (0.4, 0.8), (0.8, 1.2), (1.2, 1.6), (1.6, 2.0), (2.0, float('inf'))]
-labels = ['0-0.4', '0.4-0.8', '0.8-1.2', '1.2-1.6', '1.6-2.0', '>2']
+# # 定义区间
+# bins = [(0, 0.4), (0.4, 0.8), (0.8, 1.2), (1.2, 1.6), (1.6, 2.0), (2.0, float('inf'))]
+# labels = ['0-0.4', '0.4-0.8', '0.8-1.2', '1.2-1.6', '1.6-2.0', '>2']
 
-# 计算每个区间的数据占比
-total_count = len(flat_bo)
-percentages = []
+# # 计算每个区间的数据占比
+# total_count = len(flat_bo)
+# percentages = []
 
-for start, end in bins:
-    count = np.sum((flat_bo >= start) & (flat_bo < end))
-    percentage = (count / total_count) * 100
-    percentages.append(percentage)
+# for start, end in bins:
+#     count = np.sum((flat_bo >= start) & (flat_bo < end))
+#     percentage = (count / total_count) * 100
+#     percentages.append(percentage)
 
-print(percentages)
+# print(percentages)
 # 绘制柱状图
 # plt.figure(figsize=(10, 6))
 # plt.bar(labels, percentages)

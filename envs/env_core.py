@@ -74,7 +74,8 @@ class EnvCore(object):
         self.current_parent = actions
 
         # 计算切换惩罚
-        switch_penalty = np.all(self.current_parent == self.prev_parent, axis=1).astype(np.float32)
+        #这里有一个很重大的改变！！！！
+        switch_penalty = 1 - np.all(self.current_parent == self.prev_parent, axis=1).astype(np.float32)
         self.prev_parent = self.current_parent.copy()
 
         # 更新 ETX（可加入动态变化，此处简单模拟随机波动）注意，在这里需要设置偏好
@@ -186,6 +187,10 @@ class EnvCore(object):
         - rewards: 一个长度为 agent_num 的列表，表示每个智能体的奖励
         """
         rewards = []
+        #定义了三个奖励
+        self.rewards_1 = []
+        self.rewards_2 = []
+        self.rewards_3 = []
 
         current_parent = np.argmax(self.current_parent, axis=1)
         for i in range(self.agent_num):
@@ -199,9 +204,16 @@ class EnvCore(object):
             # 计算 Omega_i（此处简化处理）
             omega_i = self._compute_omega_i(i, parent_idx)
 
+            reward_1 = self.alpha * of1
+            reward_2 = self.beta * omega_i
+            reward_3 = self.gamma * switch_penalty[i]
+
             # 计算奖励
             reward = self.alpha * of1 + self.beta * omega_i - self.gamma * switch_penalty[i]
 
+            self.rewards_1.append([reward_1])
+            self.rewards_2.append([reward_2])
+            self.rewards_3.append([reward_3])
             rewards.append([reward])
 
         return rewards
@@ -250,7 +262,7 @@ class EnvCore(object):
         switch_penalty -= self.prev_parent
         
         # 添加切换惩罚
-        of1_values += switch_penalty
+        of1_values += 0.8*switch_penalty
         
         # 找到每个智能体的最优父节点
         best_parents = np.argmin(of1_values, axis=1)
@@ -260,3 +272,6 @@ class EnvCore(object):
         actions[np.arange(self.agent_num), best_parents] = 1
         
         return actions
+    
+    def get_reward(self):
+        return self.rewards_1, self.rewards_2, self.rewards_3

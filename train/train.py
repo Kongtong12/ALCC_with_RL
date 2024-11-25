@@ -75,7 +75,7 @@ def parse_args(args, parser):
 
     return all_args
 
-def get_env_params(agent_num = 10, alpha=-1.0, beta=1.0, gamma=1.0, W1=0.4, W2=0.6):
+def get_env_params(agent_num = 10, alpha=-1.0, beta=1.0, gamma=0.2, W1=0.4, W2=0.6):
     params = {
         'agent_num': agent_num,  # 智能体数量
         'alpha': alpha,  # 奖励参数 alpha
@@ -96,7 +96,7 @@ def main(args):
     all_args.num_agents = 10
     '''all_args.algorithm_name = "rmappo"
     all_args.use_recurrent_policy = True'''
-    all_args.num_env_steps = 3* 1e5
+    all_args.num_env_steps = 1e6
     #all_args.use_eval = True
 
 
