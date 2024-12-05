@@ -10,10 +10,7 @@ class EnvCore(object):
         self.if_rand_pi = True # 是否随机初始化优先级
         self.agent_num = kwargs.get('agent_num', 10)  # 设置智能体的个数，leaf node的数量为10
         self.parent_num = 3  # 父节点数量
-        if self.if_rand_pi:
-            self.obs_dim = 2 * self.parent_num + 2  # 每个parent node对应的ETX，bo,自身的优先级,上一个时刻的parent node选择
-        else:
-            self.obs_dim = 2 * self.parent_num + 1
+        self.obs_dim = 3 * self.parent_num + 2  # 每个parent node对应的ETX，bo，pi的综合状态 ,自身的优先级,上一个时刻的parent node选择
         self.action_dim = self.parent_num  # 设置智能体的动作维度，这里对应parent node的个数
 
 
@@ -51,8 +48,10 @@ class EnvCore(object):
         self.sending_rates = np.zeros(self.agent_num)  # 所有智能体的发送速率
 
         # 初始化每个智能体的优先级，在1到3之间连续选择，形状为 (parent_num,)
-        if self.if_rand_pi:
-            self.pi = np.random.randint(1, 4, size=self.agent_num)
+        self.pi = np.random.randint(1, 4, size=self.agent_num)
+        self.pi = self.pi.astype(np.float32)
+
+        self.avg_pi = np.zeros(self.parent_num)
 
         # 返回初始观测
         return self._get_obs()
@@ -82,6 +81,11 @@ class EnvCore(object):
         etx_fluctuation = np.random.normal(0, 0.1, size=(self.agent_num, self.parent_num))
         self.etx += etx_fluctuation
         self.etx = np.clip(self.etx, 1.0, 5.0)
+
+        #这里我尝试更新每个节点的优先级
+        # pi_fluctuation = np.random.normal(0, 0.1, size=self.agent_num)
+        # self.pi += pi_fluctuation
+        # self.pi = np.clip(self.pi, 0.0, 4.0)
 
         # 更新上一个时间节点进入父节点的Bo,发送速率,奖励
         self._update_bo()
@@ -117,12 +121,14 @@ class EnvCore(object):
         - obs_n: 一个长度为 agent_num 的列表，每个元素是对应智能体的观测向量
         """
         obs_n = []
+        # 获取所有父节点的 BO 值
+        bo_obs = self.bo  # 形状为 (parent_num,)
+
+        # 获取所有父节点下的智能体的平均优先级
+        avg_pi_obs = self.avg_pi  # 形状为 (parent_num,)
         for i in range(self.agent_num):
             # 获取智能体与所有父节点的 ETX 值
             etx_obs = self.etx[i]  # 形状为 (parent_num,)
-
-            # 获取所有父节点的 BO 值
-            bo_obs = self.bo  # 形状为 (parent_num,)
 
             # 获取智能体的优先级
             pi_obs = self.pi[i]
@@ -132,7 +138,7 @@ class EnvCore(object):
 
             # 拼接观测向量
             if self.if_rand_pi:
-                obs = np.concatenate([etx_obs, bo_obs, np.array([pi_obs]), np.argmax(prev_parent_obs, axis=1)])
+                obs = np.concatenate([etx_obs, bo_obs, avg_pi_obs, np.array([pi_obs]), np.argmax(prev_parent_obs, axis=1)])
             else:
                 obs = np.concatenate([etx_obs, bo_obs, np.argmax(prev_parent_obs, axis=1)])
 
@@ -254,7 +260,7 @@ class EnvCore(object):
         - actions: 智能体选择的父节点的one-hot编码矩阵 (agent_num, parent_num)
         """
         # 计算所有智能体的OF1值矩阵 (agent_num, parent_num)
-        of1_values = 0.4 * self.etx + 0.6 * self.bo[np.newaxis, :]
+        of1_values = 0.4 * self.etx + 0.73 * self.bo[np.newaxis, :] # 原先是0.6
         
         # 为所有智能体创建切换惩罚矩阵
         prev_parents = np.argmax(self.prev_parent, axis=1)
@@ -275,3 +281,25 @@ class EnvCore(object):
     
     def get_reward(self):
         return self.rewards_1, self.rewards_2, self.rewards_3
+    
+    def get_avg_pi(self):
+        """
+        Calculate and return the average priority (avg_pi) for each parent node.
+        Returns:
+            float: The average priority value for each parent node.
+        """
+        # 计算每个父节点的平均优先级
+        parent_counts = np.zeros(self.parent_num)
+        parent_priorities = np.zeros(self.parent_num)
+
+        current_parent = np.argmax(self.current_parent, axis=1)
+        for i in range(self.agent_num):
+            parent_idx = current_parent[i]
+            parent_counts[parent_idx] += 1
+            parent_priorities[parent_idx] += self.pi[i]
+
+        # Avoid division by zero
+        parent_counts = np.where(parent_counts == 0, 1, parent_counts)
+        self.avg_pi = parent_priorities / parent_counts
+        
+        return self.avg_pi

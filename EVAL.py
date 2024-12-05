@@ -43,10 +43,11 @@ parent_dir = os.path.abspath(os.path.join(os.getcwd(), "."))
 sys.path.append(parent_dir)
 
 from config import get_config
+from tqdm import tqdm
 
 # checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run36\models\actor.pt', map_location=torch.device('cuda'))
-checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run54\models\actor.pt', map_location=torch.device('cuda'))
-# laptop段41,43较好
+checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run58\models\actor.pt', map_location=torch.device('cuda'))
+# laptop段55较好
 if isinstance(checkpoint, dict):
     if 'state_dict' in checkpoint:
         state_dict = checkpoint['state_dict']
@@ -90,7 +91,8 @@ epoch_rewards_1 = []
 epoch_rewards_2 = []
 epoch_rewards_3 = []
 total_bo = []
-for epoch in range(50):
+total_action_dis = np.zeros(11)
+for epoch in tqdm(range(500), desc="Epochs"):
     obs = env.reset()
     total_rewards = 0
     total_rewards_1 = 0
@@ -100,6 +102,11 @@ for epoch in range(50):
     for step in range(episode_length):
         actions, _,rnn_states = actor(obs, eval_rnn_states, eval_masks, deterministic=False,)
         actions = _t2n(actions)
+        # 将actions转换为one_hot编码,对one_hot编码纵向相加，得到一个三维numpy数组，以这三个量的大小作为index加到total_action_dis中
+        one_hot = np.eye(env.action_space[0].n)[actions]
+        sum_one_hot = one_hot.sum(axis=0)
+        indices = sum_one_hot.astype(int)
+        total_action_dis[indices] += 1
         actions_env = np.squeeze(np.eye(env.action_space[0].n)[actions], 1)
         obs, rewards, dones, infos = env.step(actions_env)
         rewards_1, rewards_2, rewards_3 = env.get_reward()
@@ -111,7 +118,7 @@ for epoch in range(50):
         total_rewards_3 += np.average(rewards_3)
         '''if total_rewards < -1000:
             print("total_rewards:", total_rewards)'''
-    print(f"Epoch {epoch + 1}/{50}, Average Reward: {total_rewards:.4f}")
+    #print(f"Epoch {epoch + 1}/{50}, Average Reward: {total_rewards:.4f}")
     epoch_rewards.append(total_rewards)
     epoch_rewards_1.append(total_rewards_1)
     epoch_rewards_2.append(total_rewards_2)
@@ -120,6 +127,17 @@ print("average_rewards:", np.average(epoch_rewards))
 print("average_rewards_1:", np.average(epoch_rewards_1))
 print("average_rewards_2:", np.average(epoch_rewards_2))
 print("average_rewards_3:", np.average(epoch_rewards_3))
+print("total_action_dis:", total_action_dis / total_action_dis.sum())
+# 绘制total_action_dis / total_action_dis.sum()的柱状图
+plt.figure(figsize=(10, 6))
+plt.bar(range(11), total_action_dis / total_action_dis.sum())
+plt.xlabel('Actions')
+plt.ylabel('Percentage (%)')
+plt.title('Distribution of Actions')
+plt.xticks(range(11))
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
 # 使用KDE绘制平滑的密度分布曲线
 flat_bo = np.array(total_bo).flatten()
 density = gaussian_kde(flat_bo)
@@ -135,27 +153,27 @@ plt.show()
 
 
 
-# # 定义区间
-# bins = [(0, 0.4), (0.4, 0.8), (0.8, 1.2), (1.2, 1.6), (1.6, 2.0), (2.0, float('inf'))]
-# labels = ['0-0.4', '0.4-0.8', '0.8-1.2', '1.2-1.6', '1.6-2.0', '>2']
+# 定义区间
+bins = [(0, 0.4), (0.4, 0.8), (0.8, 1.2), (1.2, 1.6), (1.6, 2.0), (2.0, float('inf'))]
+labels = ['0-0.4', '0.4-0.8', '0.8-1.2', '1.2-1.6', '1.6-2.0', '>2']
 
 # 计算每个区间的数据占比
-# total_count = len(flat_bo)
-# percentages = []
+total_count = len(flat_bo)
+percentages = []
 
-# for start, end in bins:
-#     count = np.sum((flat_bo >= start) & (flat_bo < end))
-#     percentage = (count / total_count) * 100
-#     percentages.append(percentage)
+for start, end in bins:
+    count = np.sum((flat_bo >= start) & (flat_bo < end))
+    percentage = (count / total_count) * 100
+    percentages.append(percentage)
 
-# print(percentages)
+print(percentages)
 # 绘制柱状图
-# plt.figure(figsize=(10, 6))
-# plt.bar(labels, percentages)
-# plt.xlabel('BO Value Ranges')
-# plt.ylabel('Percentage (%)')
-# plt.title('Distribution of BO Values by Range')
-# plt.xticks(rotation=45)
-# plt.grid(True, alpha=0.3)
-# plt.tight_layout()
-# plt.show()
+plt.figure(figsize=(10, 6))
+plt.bar(labels, percentages)
+plt.xlabel('BO Value Ranges')
+plt.ylabel('Percentage (%)')
+plt.title('Distribution of BO Values by Range')
+plt.xticks(rotation=45)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()

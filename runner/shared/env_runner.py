@@ -117,9 +117,9 @@ class EnvRunner(Runner):
         # replay buffer
         if self.use_centralized_V:
             #下面为WSN环境的定制代码
-            bo_info = obs[:, 0, self.envs.parent_num : 2*self.envs.parent_num]
+            bo_info = obs[:, 0, self.envs.parent_num : 3*self.envs.parent_num] #这里的bo包含了平均的pi
             # 提取 ETX 和 上一时刻的父节点选择（不包含 BO 信息）
-            etx_and_prev_parent = np.concatenate([obs[:, :, :self.envs.parent_num], obs[:, :, 2*self.envs.parent_num:]], axis=-1)  # 形状为 [env_num, agent_num, 4]
+            etx_and_prev_parent = np.concatenate([obs[:, :, :self.envs.parent_num], obs[:, :, 3*self.envs.parent_num:]], axis=-1)  # 形状为 [env_num, agent_num, 4]
             re_etx = etx_and_prev_parent.reshape(self.n_rollout_threads, -1)
             share_obs = np.concatenate([bo_info,re_etx], axis=1) # shape = [env_num, agent_num * (parent_num+1)+parent_num]
             share_obs = np.expand_dims(share_obs, 1).repeat(
@@ -211,9 +211,9 @@ class EnvRunner(Runner):
         # this is the key point
         if self.use_centralized_V:
             #下面为WSN环境的定制代码
-            bo_info = obs[:, 0, self.envs.parent_num : 2*self.envs.parent_num]
+            bo_info = obs[:, 0, self.envs.parent_num : 3*self.envs.parent_num]
             # 提取 ETX 和 上一时刻的父节点选择（不包含 BO 信息）
-            etx_and_prev_parent = np.concatenate([obs[:, :, :self.envs.parent_num], obs[:, :, 2*self.envs.parent_num:]], axis=-1)  # 形状为 [env_num, agent_num, 4]
+            etx_and_prev_parent = np.concatenate([obs[:, :, :self.envs.parent_num], obs[:, :, 3*self.envs.parent_num:]], axis=-1)  # 形状为 [env_num, agent_num, 4]
             re_etx = etx_and_prev_parent.reshape(self.n_rollout_threads, -1)
             share_obs = np.concatenate([bo_info,re_etx], axis=1) # shape = [env_num, agent_num * (parent_num+1)+parent_num]
             share_obs = np.expand_dims(share_obs, 1).repeat(
