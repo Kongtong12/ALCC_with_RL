@@ -96,7 +96,7 @@ def main(args):
     all_args.num_agents = 10
     '''all_args.algorithm_name = "rmappo"
     all_args.use_recurrent_policy = True'''
-    all_args.num_env_steps = 1e6
+    all_args.num_env_steps = 1e7
     #all_args.use_eval = True
 
 
