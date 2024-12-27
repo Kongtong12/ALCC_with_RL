@@ -46,7 +46,7 @@ from config import get_config
 from tqdm import tqdm
 
 # checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run36\models\actor.pt', map_location=torch.device('cuda'))
-checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run58\models\actor.pt', map_location=torch.device('cuda'))
+checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run70\models\actor.pt', map_location=torch.device('cuda'))
 # laptop段55较好
 if isinstance(checkpoint, dict):
     if 'state_dict' in checkpoint:
