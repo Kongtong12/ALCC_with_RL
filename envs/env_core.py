@@ -22,7 +22,7 @@ class EnvCore(object):
         self.xi_max = np.full(self.agent_num,8.0) # 这里设置了每个节点的最大传输速率
 
         # 初始化奖励参数，使用kwargs传递
-        self.alpha = kwargs.get('alpha', -1.0)
+        self.alpha = kwargs.get('alpha', 0.1)
         self.beta = kwargs.get('beta', 1.0)
         self.gamma = kwargs.get('gamma', 1.0)
         self.W1 = kwargs.get('W1', 0.4)
@@ -35,7 +35,7 @@ class EnvCore(object):
         # When self.agent_num is set to 2 agents, the return value is a list, each list contains a shape = (self.obs_dim, ) observation data
         """
         # 初始化 ETX 值（叶节点到父节点的链路质量）
-        self.etx = np.random.uniform(1.0, 5.0, size=(self.agent_num, self.parent_num))
+        self.etx = np.random.uniform(1.0, 1.3, size=(self.agent_num, self.parent_num))
         # 初始化 BO 值（上一个时刻进入父节点的流量），初始化为 0
         self.bo = np.zeros(self.parent_num)
         #初始化每个父亲节点的最大传输速率
@@ -78,9 +78,9 @@ class EnvCore(object):
         self.prev_parent = self.current_parent.copy()
 
         # 更新 ETX（可加入动态变化，此处简单模拟随机波动）注意，在这里需要设置偏好
-        etx_fluctuation = np.random.normal(0, 0.1, size=(self.agent_num, self.parent_num))
+        etx_fluctuation = np.random.normal(0, 0.01, size=(self.agent_num, self.parent_num))
         self.etx += etx_fluctuation
-        self.etx = np.clip(self.etx, 1.0, 5.0)
+        self.etx = np.clip(self.etx, 1.0, 1.3)
 
         #这里我尝试更新每个节点的优先级
         # pi_fluctuation = np.random.normal(0, 0.1, size=self.agent_num)
@@ -156,12 +156,13 @@ class EnvCore(object):
         counts_w2 = counts * self.w2 / (self.xi_out + 1)
         for i in range(self.agent_num):
             parent_idx = current_parent[i]
-            if (counts_w2[parent_idx] + self.w3 * self.pi[i] >= self.w1):
+            sigma = 1 / self.etx[i, parent_idx]
+            if (counts_w2[parent_idx] * sigma + self.w3 * self.pi[i] >= self.w1):
                 self.sending_rates[i] = 0
-            elif (counts_w2[parent_idx] + self.w3 * self.pi[i] <= self.w1 / (1 + self.xi_max[i])):
+            elif (counts_w2[parent_idx] * sigma + self.w3 * self.pi[i] <= self.w1 / (1 + self.xi_max[i])):
                 self.sending_rates[i] = self.xi_max[i]
             else:
-                self.sending_rates[i] = -1+self.w1*(1+self.xi_out[parent_idx])/(self.w2*counts[parent_idx]+self.w3*self.pi[i]*(self.xi_out[parent_idx]+1))
+                self.sending_rates[i] = -1+self.w1*(1+self.xi_out[parent_idx])/(self.w2*counts[parent_idx]*sigma+self.w3*self.pi[i]*(self.xi_out[parent_idx]+1))
 
 
     def _update_bo(self):
@@ -177,7 +178,7 @@ class EnvCore(object):
             agents_selecting_j = np.where(current_parent == j)[0]
 
             # 累加这些智能体的发送速率
-            total_rate = np.sum(self.sending_rates[agents_selecting_j])
+            total_rate = np.sum(self.sending_rates[agents_selecting_j] / self.etx[agents_selecting_j, j])
             # 修改了bo的计算方式
 
             self.bo[j] = total_rate / self.xi_out[j]
@@ -196,30 +197,22 @@ class EnvCore(object):
         #定义了三个奖励
         self.rewards_1 = []
         self.rewards_2 = []
-        self.rewards_3 = []
 
         current_parent = np.argmax(self.current_parent, axis=1)
         for i in range(self.agent_num):
             parent_idx = current_parent[i]
 
-            #这里我希望对self.bo进行更新，使得若某一个位置大于1，则将其设置为1
-            bo = np.minimum(self.bo,1)
-            # 计算 OF1
-            of1 = self.W1 * self.etx[i, parent_idx] + self.W2 * bo[parent_idx]
+            
+            bo = self.bo[parent_idx]
+            reward_1 = self.sending_rates[i] / (self.etx[i, parent_idx] * bo)
 
-            # 计算 Omega_i（此处简化处理）
-            omega_i = self._compute_omega_i(i, parent_idx)
-
-            reward_1 = self.alpha * of1
-            reward_2 = self.beta * omega_i
-            reward_3 = self.gamma * switch_penalty[i]
+            reward_2 = self.gamma * switch_penalty[i]
 
             # 计算奖励
-            reward = self.alpha * of1 + self.beta * omega_i - self.gamma * switch_penalty[i]
+            reward =  reward_1 - self.alpha * self.pi[i] - reward_2
 
             self.rewards_1.append([reward_1])
             self.rewards_2.append([reward_2])
-            self.rewards_3.append([reward_3])
             rewards.append([reward])
 
         return rewards
