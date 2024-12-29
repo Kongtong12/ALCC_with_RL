@@ -88,8 +88,9 @@ class EnvCore(object):
         # self.pi = np.clip(self.pi, 0.0, 4.0)
 
         # 更新上一个时间节点进入父节点的Bo,发送速率,奖励
-        self._update_bo()
+        # 这里的顺序需要思考一下
         self._compute_sending_rates()
+        self._update_bo()
         # 下面做一下简单尝试 
         rewards = self._compute_rewards(switch_penalty)
         '''rewards1 = []
@@ -209,7 +210,7 @@ class EnvCore(object):
             reward_2 = self.gamma * switch_penalty[i]
 
             # 计算奖励
-            reward =  reward_1 - self.alpha * self.pi[i] - reward_2
+            reward =  reward_1 - self.alpha * self.pi[i] * reward_1 - reward_2
 
             self.rewards_1.append([reward_1])
             self.rewards_2.append([reward_2])

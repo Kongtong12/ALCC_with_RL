@@ -94,7 +94,9 @@ def main(args):
     # 下面修改默认的参数
     all_args.share_policy = True
     all_args.num_agents = 10
-    all_args.layer_N = 2
+    all_args.n_training_threads = 4
+    all_args.n_rollout_threads = 5
+    # all_args.layer_N = 2
     '''all_args.algorithm_name = "rmappo"
     all_args.use_recurrent_policy = True'''
     all_args.num_env_steps = 1e6
@@ -129,7 +131,7 @@ def main(args):
 
     # run dir
     run_dir = (
-        Path(os.path.split(os.path.dirname(os.path.abspath(__file__)))[0] + "/results")
+        Path(os.path.split(os.path.dirname(os.path.abspath(__file__)))[0] + "/new_reward_results")
         / all_args.env_name
         / all_args.scenario_name
         / all_args.algorithm_name
