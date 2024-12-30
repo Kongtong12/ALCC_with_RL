@@ -94,9 +94,10 @@ def main(args):
     # 下面修改默认的参数
     all_args.share_policy = True
     all_args.num_agents = 10
+    all_args.n_training_threads = 4
     '''all_args.algorithm_name = "rmappo"
     all_args.use_recurrent_policy = True'''
-    all_args.num_env_steps = 1e7
+    all_args.num_env_steps = 1e8
     #all_args.use_eval = True
 
 
