@@ -17,23 +17,21 @@ def get_env_params(agent_num = 10, alpha=-1.0, beta=1.0, gamma=0.2, W1=0.4, W2=0
 
 params = get_env_params(agent_num = 10, alpha=-1.0, beta=1, gamma=0.2, W1=0.4, W2=0.6)
 env = env_core.EnvCore(**params)
+num_agents = params['agent_num']
 # 训练循环
 num_epochs = 500
 steps_per_epoch = 200
 epoch_rewards = []
-epoch_rewards_1 = []
-epoch_rewards_2 = []
-epoch_rewards_3 = []
 total_bo = []
 total_action_dis = np.zeros(11)
+total_WFI_seq = np.zeros(steps_per_epoch)
 
 for epoch in tqdm(range(num_epochs), desc="Epochs"):
     # 重置环境
     state = env.reset()
     epoch_reward = 0
     epoch_reward_1 = 0
-    epoch_reward_2 = 0
-    epoch_reward_3 = 0
+    WFI_seq = np.zeros(steps_per_epoch)
     
     # 执行时间步
     for step in range(steps_per_epoch):
@@ -44,15 +42,21 @@ for epoch in tqdm(range(num_epochs), desc="Epochs"):
         indices = sum_one_hot.astype(int)
         total_action_dis[indices] += 1
         # 执行动作并获取奖励
-        next_state, reward, done, info = env.step(actions)
-        reward_1, reward_2, reward_3 = env.get_reward()
+        next_state, reward, done, infos = env.step(actions)
+        # 从 infos 中提取 sending_rate 和 pi
+        sending_rates = np.array([info['sending_rates'] for info in infos], dtype=np.float32)  # shape: (agent_num,)
+        pis = np.array([info['priority'] for info in infos], dtype=np.float32)
+        throughput = np.array([info['throughput'] for info in infos], dtype=np.float32)
+
+        # 计算分子和分母
+        numerator = np.sum(throughput * pis) ** 2
+        denominator = np.sum((throughput * pis) ** 2) * num_agents
+        current_WFI = numerator / denominator
+        WFI_seq[step] = current_WFI
         
         # 累积奖励
         if step:
             epoch_reward += np.average(reward)
-            epoch_reward_1 += np.average(reward_1)
-            epoch_reward_2 += np.average(reward_2)
-            epoch_reward_3 += np.average(reward_3)
             total_bo.append(next_state[0][3:6])
         
         # 更新状态
@@ -60,19 +64,25 @@ for epoch in tqdm(range(num_epochs), desc="Epochs"):
     
     # 计算该epoch的平均奖励
     epoch_rewards.append(epoch_reward)
-    epoch_rewards_1.append(epoch_reward_1)
-    epoch_rewards_2.append(epoch_reward_2)
-    epoch_rewards_3.append(epoch_reward_3)
-    
-    #print(f"Epoch {epoch + 1}/{num_epochs}, Average Reward: {epoch_reward:.4f}")
+    total_WFI_seq += WFI_seq
+
+total_WFI_seq /= 500
 
 # 输出总体训练结果
 #print(f"\nTraining completed!")
 print(f"Final average reward: {np.mean(epoch_rewards):.4f}")
-print(f"Final average reward_1: {np.mean(epoch_rewards_1):.4f}")
-print(f"Final average reward_2: {np.mean(epoch_rewards_2):.4f}")
-print(f"Final average reward_3: {np.mean(epoch_rewards_3):.4f}")
+plt.figure(figsize=(10, 6))
 
+# 绘制折线图
+plt.plot(WFI_seq)
+
+# 添加标题和标签
+plt.title('WFI Sequence')
+plt.xlabel('Index')
+plt.ylabel('WFI Value')
+
+# 显示图形
+plt.show()
 # print("total_action_dis:", total_action_dis / total_action_dis.sum())
 # # 绘制total_action_dis / total_action_dis.sum()的柱状图
 # plt.figure(figsize=(10, 6))

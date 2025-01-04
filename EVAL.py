@@ -46,7 +46,7 @@ from config import get_config
 from tqdm import tqdm
 
 # checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run36\models\actor.pt', map_location=torch.device('cuda'))
-checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run70\models\actor.pt', map_location=torch.device('cuda'))
+checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run77\models\actor.pt', map_location=torch.device('cuda'))
 # laptop段55较好
 if isinstance(checkpoint, dict):
     if 'state_dict' in checkpoint:
@@ -87,17 +87,13 @@ eval_rnn_states = np.zeros((1, *rnn_states),dtype=np.float32)
 eval_masks = np.ones((n_rollout_threads, num_agents, 1), dtype=np.float32)
 
 epoch_rewards = []
-epoch_rewards_1 = []
-epoch_rewards_2 = []
-epoch_rewards_3 = []
 total_bo = []
 total_action_dis = np.zeros(11)
+total_WFI_seq = np.zeros(episode_length)
 for epoch in tqdm(range(500), desc="Epochs"):
     obs = env.reset()
     total_rewards = 0
-    total_rewards_1 = 0
-    total_rewards_2 = 0
-    total_rewards_3 = 0
+    WFI_seq = np.zeros(episode_length)
     # 以下是一个episode的循环
     for step in range(episode_length):
         actions, _,rnn_states = actor(obs, eval_rnn_states, eval_masks, deterministic=False,)
@@ -109,24 +105,27 @@ for epoch in tqdm(range(500), desc="Epochs"):
         total_action_dis[indices] += 1
         actions_env = np.squeeze(np.eye(env.action_space[0].n)[actions], 1)
         obs, rewards, dones, infos = env.step(actions_env)
-        rewards_1, rewards_2, rewards_3 = env.get_reward()
+
+
+        # 从 infos 中提取 sending_rate 和 pi
+        sending_rates = np.array([info['sending_rates'] for info in infos], dtype=np.float32)  # shape: (agent_num,)
+        pis = np.array([info['priority'] for info in infos], dtype=np.float32)
+        throughput = np.array([info['throughput'] for info in infos], dtype=np.float32)
+
+        # 计算分子和分母
+        numerator = np.sum(throughput * pis) ** 2
+        denominator = np.sum((throughput * pis) ** 2) * num_agents
+        current_WFI = numerator / denominator
+        WFI_seq[step] = current_WFI
         if step:
             total_bo.append(obs[0][parent_num:2*parent_num])
         total_rewards += np.average(rewards)
-        total_rewards_1 += np.average(rewards_1)
-        total_rewards_2 += np.average(rewards_2)
-        total_rewards_3 += np.average(rewards_3)
-        '''if total_rewards < -1000:
-            print("total_rewards:", total_rewards)'''
     #print(f"Epoch {epoch + 1}/{50}, Average Reward: {total_rewards:.4f}")
     epoch_rewards.append(total_rewards)
-    epoch_rewards_1.append(total_rewards_1)
-    epoch_rewards_2.append(total_rewards_2)
-    epoch_rewards_3.append(total_rewards_3)
+    total_WFI_seq += WFI_seq
+
+total_WFI_seq /= 500
 print("average_rewards:", np.average(epoch_rewards))
-print("average_rewards_1:", np.average(epoch_rewards_1))
-print("average_rewards_2:", np.average(epoch_rewards_2))
-print("average_rewards_3:", np.average(epoch_rewards_3))
 print("total_action_dis:", total_action_dis / total_action_dis.sum())
 # 绘制total_action_dis / total_action_dis.sum()的柱状图
 plt.figure(figsize=(10, 6))

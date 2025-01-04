@@ -99,6 +99,14 @@ class EnvCore(object):
         obs = self._get_obs()
         dones = [False] * self.agent_num
         infos = [{} for _ in range(self.agent_num)]
+
+    
+        # 填充 infos 中的发送速率和优先级
+        for i in range(self.agent_num):
+            infos[i]['sending_rates'] = self.sending_rates[i]
+            infos[i]['priority'] = self.pi[i]
+            infos[i]['throughput'] = self.sending_rates[i] / self.etx[i, np.argmax(self.current_parent[i])]
+        
         return [obs, rewards, dones, infos]
     
     def _get_obs(self):
@@ -195,7 +203,7 @@ class EnvCore(object):
 
 
         # 2) 计算每个父节点上所有智能体的发送速率之和: parent_sum[j] = ∑(sending_rates[i])，其中 i 属于该父节点
-        parent_sum = np.bincount(parent_idx, weights=self.sending_rates, minlength=self.parent_num)  # shape: (parent_num, )
+        parent_sum = np.bincount(parent_idx, weights = adjusted_sending_rates, minlength=self.parent_num)  # shape: (parent_num, )
 
         # 3) numerator[j] = parent_sum[j] + 1
         numerator = parent_sum + 1.0
@@ -289,7 +297,7 @@ class EnvCore(object):
         return actions
     
     def get_reward(self):
-        return self.rewards_1, self.rewards_2, self.rewards_3
+        return self.rewards_2, self.rewards_3
     
     def get_avg_pi(self):
         """
