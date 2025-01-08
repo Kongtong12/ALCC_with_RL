@@ -95,7 +95,7 @@ def main(args):
     all_args.share_policy = True
     all_args.n_training_threads = 8
     all_args.n_rollout_threads = 8
-    all_args.model_dir = "results/MyEnv/MyEnv/mappo/check/run77/models"
+    # all_args.model_dir = "results/MyEnv/MyEnv/mappo/check/run77/models"
     all_args.num_agents = 10
     all_args.n_training_threads = 4
     '''all_args.algorithm_name = "rmappo"

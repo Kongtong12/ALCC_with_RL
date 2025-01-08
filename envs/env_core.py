@@ -17,9 +17,11 @@ class EnvCore(object):
         self.pi = np.ones(self.agent_num) # 每个节点的优先级，用于计算收益。在这里简化为所有节点拥有相同的优先级
         #下面定义的是选择父亲节点后，leaf node的payoff function
         self.w1 = 15.
-        self.w2 = 3.
-        self.w3 = 0.9
-        self.xi_max = np.full(self.agent_num,8.0) # 这里设置了每个节点的最大传输速率
+        self.w2 = 10.
+        self.w5 = 12.8
+        self.w3 = 1. * self.w5
+        self.w4 = 1. * self.w5
+        self.xi_max = np.full(self.agent_num,12.) # 这里设置了每个节点的最大传输速率
 
         # 初始化奖励参数，使用kwargs传递
         self.alpha = kwargs.get('alpha', -1.0)
@@ -35,11 +37,11 @@ class EnvCore(object):
         # When self.agent_num is set to 2 agents, the return value is a list, each list contains a shape = (self.obs_dim, ) observation data
         """
         # 初始化 ETX 值（叶节点到父节点的链路质量）
-        self.etx = np.random.uniform(1.0, 1.3, size=(self.agent_num, self.parent_num))
+        self.etx = np.random.uniform(1.0, 1.1, size=(self.agent_num, self.parent_num))
         # 初始化 BO 值（上一个时刻进入父节点的流量），初始化为 0
         self.bo = np.zeros(self.parent_num)
         #初始化每个父亲节点的最大传输速率
-        self.xi_out = np.array([15.,15.,15.])
+        self.xi_out = np.array([12.8,12.8,12.8])
 
         # 初始化智能体的上一个父节点选择，随机分配或设为 -1（表示初始状态）
         self.prev_parent = np.zeros([self.agent_num, self.parent_num])  # -1 表示未选择任何父节点
@@ -80,12 +82,10 @@ class EnvCore(object):
         # 更新 ETX（可加入动态变化，此处简单模拟随机波动）注意，在这里需要设置偏好
         etx_fluctuation = np.random.normal(0, 0.01, size=(self.agent_num, self.parent_num))
         self.etx += etx_fluctuation
-        self.etx = np.clip(self.etx, 1.0, 1.3)
+        self.etx = np.clip(self.etx, 1.0, 1.1)
 
-        #这里我尝试更新每个节点的优先级
-        # pi_fluctuation = np.random.normal(0, 0.1, size=self.agent_num)
-        # self.pi += pi_fluctuation
-        # self.pi = np.clip(self.pi, 0.0, 4.0)
+        # 更新选择新的拓扑下的avg_pi
+        self.avg_pi = self.get_avg_pi()
 
         # 更新上一个时间节点进入父节点的Bo,发送速率,奖励
         self._update_bo()
@@ -129,9 +129,6 @@ class EnvCore(object):
             # 获取智能体的优先级
             pi_obs = self.pi[i]
 
-            # 获取智能体的上一个父节点选择
-            prev_parent_obs = np.array([self.prev_parent[i]])  # 形状为 (1,)
-
             # 拼接观测向量
             if self.if_rand_pi:
                 obs = np.concatenate([etx_obs, bo_obs, avg_pi_obs, np.array([pi_obs]), self.prev_parent[i]])
@@ -149,17 +146,13 @@ class EnvCore(object):
         current_parent = np.argmax(self.current_parent, axis=1)
         counts = np.bincount(current_parent, minlength=self.parent_num)
         # 下面为计算的过程
-        counts_w2 = counts * self.w2 / (self.xi_out + 1)
         for i in range(self.agent_num):
             parent_idx = current_parent[i]
             sigma = 1 / self.etx[i, parent_idx]
-            if (counts_w2[parent_idx] * sigma + self.w3 * self.pi[i] >= self.w1):
-                self.sending_rates[i] = 0
-            elif (counts_w2[parent_idx] * sigma + self.w3 * self.pi[i] <= self.w1 / (1 + self.xi_max[i])):
-                self.sending_rates[i] = self.xi_max[i]
-            else:
-                self.sending_rates[i] = -1+self.w1*(1+self.xi_out[parent_idx])/(self.w2*counts[parent_idx]*sigma+self.w3*self.pi[i]*(self.xi_out[parent_idx]+1))
-
+            self.sending_rates[i] = self.etx[i, parent_idx] * (-self.xi_out[parent_idx] / \
+                                                               self.w5 + self.w1 * self.xi_out[parent_idx] / (self.w2*counts[parent_idx]*sigma + \
+                                                                                         self.w3 * (self.pi[i]-self.avg_pi[parent_idx]) + self.w4))
+            self.sending_rates[i] = np.clip(self.sending_rates[i], 0, self.xi_max[i])
 
     def _update_bo(self):
         """
@@ -190,9 +183,6 @@ class EnvCore(object):
         - rewards: 一个长度为 agent_num 的列表，表示每个智能体的奖励
         """
 
-        # 将 self.bo 超过 1 的位置裁剪到 1
-        bo_clipped = np.minimum(self.bo, 1.0)  # shape: (parent_num, )
-
         # 获取每个智能体所选的父节点，形状 (agent_num, )
         parent_idx = np.argmax(self.current_parent, axis=1)
 
@@ -206,21 +196,21 @@ class EnvCore(object):
         parent_sum = np.bincount(parent_idx, weights = adjusted_sending_rates, minlength=self.parent_num)  # shape: (parent_num, )
 
         # 3) numerator[j] = parent_sum[j] + 1
-        numerator = parent_sum + 1.0
+        numerator = parent_sum
 
         # 4) 为每个智能体映射其对应父节点的 n, numerator, xi_out
         n_parent       = n_count[parent_idx]        # shape: (agent_num, )
         numerator_par  = numerator[parent_idx]      # shape: (agent_num, )
         xi_out_par     = self.xi_out[parent_idx]    # shape: (agent_num, )
-        denominator_par= xi_out_par + 1.0           # shape: (agent_num, )
 
         # ============ 计算 Omega_i (向量化) ============
         # omega_i[i] = w1 * log(sending_rates[i]+1) 
         #              - w2 * n_parent[i] * ( numerator_par[i] / denominator_par[i] )
         #              - w3 * pi[i] * sending_rates[i]
-        omega_i = self.w1 * np.log(self.sending_rates + 1.0) \
-                - self.w2 * n_parent * (numerator_par / denominator_par) \
-                - self.w3 * self.pi * self.sending_rates  # shape: (agent_num, )
+        omega_i = self.w1 * np.log(adjusted_sending_rates + 1.0) \
+                - self.w2 * n_parent * (np.maximum(numerator_par / xi_out_par, 1)-1) \
+                - self.w3 * (self.pi - self.avg_pi[parent_idx]) * self.sending_rates \
+                - self.w4 * self.sending_rates             # shape: (agent_num, )
         # ============ 组合各部分奖励 ============
         # reward_1 = alpha * of1
         # reward_2 = beta * omega_i
@@ -241,33 +231,6 @@ class EnvCore(object):
         rewards = final_reward.reshape(-1, 1).tolist()
         return rewards
     
-
-    def _compute_omega_i(self, agent_idx, parent_idx):
-        """
-        计算智能体的 Omega_i 值
-
-        参数:
-        - agent_idx: 智能体索引
-        - parent_idx: 父节点索引
-
-        返回:
-        - omega_i: 智能体的发送速率部分的收益
-        """
-
-        current_parent = np.argmax(self.current_parent, axis=1)
-        # 获取连接到该父节点的智能体数量 n
-        n = np.sum(current_parent == parent_idx)
-
-        xi_out = self.xi_out[parent_idx] # 特定parent node的传输速率
-
-        # 计算 Omega_i
-        numerator = np.sum(self.sending_rates[current_parent == parent_idx]) + 1
-        denominator = xi_out + 1
-
-        omega_i = self.w1 * np.log(self.sending_rates[agent_idx] + 1) \
-                  - self.w2 * n * (numerator / denominator) \
-                  - self.w3 * self.pi[agent_idx] * self.sending_rates[agent_idx]
-        return omega_i
     
     def take_action(self):
         """
@@ -317,6 +280,6 @@ class EnvCore(object):
 
         # Avoid division by zero
         parent_counts = np.where(parent_counts == 0, 1, parent_counts)
-        self.avg_pi = parent_priorities / parent_counts
+        avg_pi = parent_priorities / parent_counts
         
-        return self.avg_pi
+        return avg_pi
