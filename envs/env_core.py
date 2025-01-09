@@ -208,9 +208,9 @@ class EnvCore(object):
         #              - w2 * n_parent[i] * ( numerator_par[i] / denominator_par[i] )
         #              - w3 * pi[i] * sending_rates[i]
         omega_i = self.w1 * np.log(adjusted_sending_rates + 1.0) \
-                - self.w2 * n_parent * (np.maximum(numerator_par / xi_out_par, 1)-1) \
-                - self.w3 * (self.pi - self.avg_pi[parent_idx]) * self.sending_rates \
-                - self.w4 * self.sending_rates             # shape: (agent_num, )
+                - self.w2 * n_parent * (numerator_par / xi_out_par) \
+                - self.w3 * (self.pi - self.avg_pi[parent_idx]) * self.sending_rates / self.w5 \
+                - self.w4 * self.sending_rates / self.w5            # shape: (agent_num, )
         # ============ 组合各部分奖励 ============
         # reward_1 = alpha * of1
         # reward_2 = beta * omega_i
