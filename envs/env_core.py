@@ -105,7 +105,7 @@ class EnvCore(object):
         for i in range(self.agent_num):
             infos[i]['sending_rates'] = self.sending_rates[i]
             infos[i]['priority'] = self.pi[i]
-            infos[i]['throughput'] = self.sending_rates[i] / self.etx[i, np.argmax(self.current_parent[i])]
+            infos[i]['throughput'] = self.sending_rates[i] / (self.etx[i, np.argmax(self.current_parent[i])] * np.maximum(self.bo[np.argmax(self.current_parent[i])], 1))
         
         return [obs, rewards, dones, infos]
     
