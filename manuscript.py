@@ -26,6 +26,7 @@ total_bo = []
 total_action_dis = np.zeros(11)
 total_WFI_seq = np.zeros(steps_per_epoch)
 total_throughput = 0
+total_sending_rate = 0
 
 for epoch in tqdm(range(num_epochs), desc="Epochs"):
     # 重置环境
@@ -46,6 +47,7 @@ for epoch in tqdm(range(num_epochs), desc="Epochs"):
         next_state, reward, done, infos = env.step(actions)
         # 从 infos 中提取 sending_rate 和 pi
         sending_rates = np.array([info['sending_rates'] for info in infos], dtype=np.float32)  # shape: (agent_num,)
+        total_sending_rate += np.sum(sending_rates)
         pis = np.array([info['priority'] for info in infos], dtype=np.float32)
         throughput = np.array([info['throughput'] for info in infos], dtype=np.float32)
         total_throughput += np.sum(throughput)
@@ -72,6 +74,7 @@ total_WFI_seq /= 500
 # 输出总体训练结果
 #print(f"\nTraining completed!")
 print(f"Total throughput: {total_throughput:.4f}")
+print(f"ratio: {total_throughput/total_sending_rate:.4f}")
 print(f"Final average reward: {np.mean(epoch_rewards):.4f}")
 plt.figure(figsize=(10, 6))
 
