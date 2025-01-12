@@ -17,9 +17,9 @@ class EnvCore(object):
         self.pi = np.ones(self.agent_num) # 每个节点的优先级，用于计算收益。在这里简化为所有节点拥有相同的优先级
         #下面定义的是选择父亲节点后，leaf node的payoff function
         self.w1 = 15.
-        self.w2 = 10.
+        self.w2 = 9.
         self.w5 = 12.8
-        self.w3 = 1. * self.w5
+        self.w3 = .9 * self.w5
         self.w4 = 1. * self.w5
         self.xi_max = np.full(self.agent_num,12.) # 这里设置了每个节点的最大传输速率
 
@@ -37,7 +37,7 @@ class EnvCore(object):
         # When self.agent_num is set to 2 agents, the return value is a list, each list contains a shape = (self.obs_dim, ) observation data
         """
         # 初始化 ETX 值（叶节点到父节点的链路质量）
-        self.etx = np.random.uniform(1.0, 1.1, size=(self.agent_num, self.parent_num))
+        self.etx = np.random.uniform(1.02, 1.08, size=(self.agent_num, self.parent_num))
         # 初始化 BO 值（上一个时刻进入父节点的流量），初始化为 0
         self.bo = np.zeros(self.parent_num)
         #初始化每个父亲节点的最大传输速率
@@ -82,7 +82,7 @@ class EnvCore(object):
         # 更新 ETX（可加入动态变化，此处简单模拟随机波动）注意，在这里需要设置偏好
         etx_fluctuation = np.random.normal(0, 0.01, size=(self.agent_num, self.parent_num))
         self.etx += etx_fluctuation
-        self.etx = np.clip(self.etx, 1.0, 1.1)
+        self.etx = np.clip(self.etx, 1.02, 1.08)
 
         # 更新选择新的拓扑下的avg_pi
         self.avg_pi = self.get_avg_pi()
@@ -149,7 +149,7 @@ class EnvCore(object):
         for i in range(self.agent_num):
             parent_idx = current_parent[i]
             sigma = 1 / self.etx[i, parent_idx]
-            self.sending_rates[i] = self.etx[i, parent_idx] * (-self.xi_out[parent_idx] / \
+            self.sending_rates[i] = (-self.xi_out[parent_idx] / \
                                                                self.w5 + self.w1 * self.xi_out[parent_idx] / (self.w2*counts[parent_idx]*sigma + \
                                                                                          self.w3 * (self.pi[i]-self.avg_pi[parent_idx]) + self.w4))
             self.sending_rates[i] = np.clip(self.sending_rates[i], 0, self.xi_max[i])
