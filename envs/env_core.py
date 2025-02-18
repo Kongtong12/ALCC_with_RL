@@ -147,18 +147,11 @@ class EnvCore(object):
         计算智能体的最优发送速率
         """
         current_parent = np.argmax(self.current_parent, axis=1)
-        counts = np.bincount(current_parent, minlength=self.parent_num)
+        pi_inverse = 1.0 / self.pi
+        pi_sums = np.bincount(current_parent, weights=pi_inverse, minlength=self.parent_num)
         # 下面为计算的过程
-        counts_w2 = counts * self.w2 / (self.xi_out + 1)
         for i in range(self.agent_num):
-            parent_idx = current_parent[i]
-            sigma = 1 / self.etx[i, parent_idx]
-            if (counts_w2[parent_idx] * sigma + self.w3 * self.pi[i] >= self.w1):
-                self.sending_rates[i] = 0
-            elif (counts_w2[parent_idx] * sigma + self.w3 * self.pi[i] <= self.w1 / (1 + self.xi_max[i])):
-                self.sending_rates[i] = self.xi_max[i]
-            else:
-                self.sending_rates[i] = -1+self.w1*(1+self.xi_out[parent_idx])/(self.w2*counts[parent_idx]*sigma+self.w3*self.pi[i]*(self.xi_out[parent_idx]+1))
+            self.sending_rates[i] = 1.0 / self.pi[i] / pi_sums[current_parent[i]] * self.xi_out[current_parent[i]]
 
 
     def _update_bo(self):
@@ -285,7 +278,7 @@ class EnvCore(object):
         switch_penalty -= self.prev_parent
         
         # 添加切换惩罚
-        of1_values += 0.8*switch_penalty
+        of1_values += 0.7*switch_penalty
         
         # 找到每个智能体的最优父节点
         best_parents = np.argmin(of1_values, axis=1)
@@ -320,3 +313,107 @@ class EnvCore(object):
         self.avg_pi = parent_priorities / parent_counts
         
         return self.avg_pi
+
+    def gray_relational_analysis(self, decision_matrix, zeta=0.5):
+        """
+        Performs Gray Relational Analysis (GRA) for parent selection.
+
+        Args:
+            decision_matrix (np.ndarray): The decision matrix (D).
+                Rows represent candidate parents (alternatives).
+                Columns represent routing metrics (attributes).  Assumes all
+                attributes are *cost* attributes (lower values are better).
+            zeta (float): The distinguishing coefficient (resolution coefficient).
+                Typically between 0 and 1 (default: 0.5).
+
+        Returns:
+            int: The index (starting from 0) of the selected parent (alternative)
+                with the highest Gray Relational Grade.
+        """
+
+        # --- 1. Normalization (Gray Relational Generating) ---
+        m, n = decision_matrix.shape  # m: number of parents, n: number of metrics
+        normalized_matrix = np.zeros((m, n))
+
+        for j in range(n):
+            max_val = np.max(decision_matrix[:, j])
+            min_val = np.min(decision_matrix[:, j])
+
+            if max_val == min_val:
+                # Handle the case where all values for a metric are the same.
+                # Avoid division by zero.  Set normalized values to 0.5.
+                #  This essentially neutralizes the metric's impact if it's constant.
+                normalized_matrix[:, j] = 0.5
+            else:
+                normalized_matrix[:, j] = (max_val - decision_matrix[:, j]) / (max_val - min_val)
+
+
+        # --- 2. Reference Sequence Definition ---
+        # x0j = 1 for all j (cost attributes, normalized best value is 1)
+        reference_sequence = np.ones(n)
+
+        # --- 3. Gray Relational Coefficient Calculation ---
+        gray_coefficients = np.zeros((m, n))
+        for i in range(m):
+            for j in range(n):
+                delta_ij = abs(reference_sequence[j] - normalized_matrix[i, j])
+
+                #find min and max delta
+                min_delta = np.inf #positive infinity, no delta can be greater than this number
+                max_delta = -np.inf #negative infinity, no delta can be smaller than this number
+                for k in range(m):
+                    for l in range(n):
+                        current_delta=abs(reference_sequence[l] - normalized_matrix[k, l])
+                        if current_delta<min_delta:
+                            min_delta=current_delta
+                        if current_delta>max_delta:
+                            max_delta=current_delta
+
+                gray_coefficients[i, j] = (min_delta + zeta * max_delta) / (delta_ij + zeta * max_delta)
+
+
+        # --- 4. Gray Relational Grade Calculation ---
+        #  - Weights Calculation (SD Method)
+        weights = np.zeros(n)
+        for j in range(n):
+            mean_j = np.mean(normalized_matrix[:, j])
+            std_dev_j = np.std(normalized_matrix[:, j])  #Standard deviation
+            weights[j] = std_dev_j
+
+        # Normalize the weights
+        sum_weights = np.sum(weights)
+        if sum_weights ==0: #Avoid division by zero
+            weights=np.ones(n)/n
+        else:
+            weights = weights / sum_weights
+
+
+        gray_grades = np.zeros(m)
+        for i in range(m):
+            gray_grades[i] = np.sum(weights * gray_coefficients[i, :])
+
+        # --- 5. Parent Selection (Find parent with highest Gray Relational Grade) ---
+        selected_parent_index = np.argmax(gray_grades)  # Index of the best parent
+
+        return selected_parent_index
+    
+    def OHCA_take_action(self):
+        agent_parent_selections = np.zeros(self.agent_num, dtype=int) # To store selected parent index for each agent
+
+        for agent_index in range(self.agent_num):
+            # Construct decision matrix for each agent.
+            # Here, we are using only ETX as the metric.
+            # Decision matrix for agent 'agent_index' will be of shape (parent_num, 1)
+            decision_matrix_agent = np.zeros((self.parent_num, 2))
+            decision_matrix_agent[:, 0] = self.etx[agent_index, :]  # ETX values (column 1)
+            decision_matrix_agent[:, 1] = self.bo[:]               # BO values (column 2) - Assuming same BO for all agents
+
+            # Perform GRA to select the best parent for the current agent
+            selected_parent_index = self.gray_relational_analysis(decision_matrix_agent)
+            agent_parent_selections[agent_index] = selected_parent_index
+
+        # Convert parent indices to one-hot encoded actions
+        actions = np.zeros((self.agent_num, self.parent_num))
+        actions[np.arange(self.agent_num), agent_parent_selections] = 1
+
+        return actions
