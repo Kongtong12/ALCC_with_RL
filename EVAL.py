@@ -46,7 +46,7 @@ from config import get_config
 from tqdm import tqdm
 
 # checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run36\models\actor.pt', map_location=torch.device('cuda'))
-checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run77\models\actor.pt', map_location=torch.device('cuda'))
+checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run10\models\actor.pt', map_location=torch.device('cuda'))
 # laptop段55较好
 if isinstance(checkpoint, dict):
     if 'state_dict' in checkpoint:
@@ -89,6 +89,8 @@ eval_masks = np.ones((n_rollout_threads, num_agents, 1), dtype=np.float32)
 epoch_rewards = []
 total_bo = []
 total_action_dis = np.zeros(11)
+total_throughput = 0
+total_sending_rate = 0
 total_WFI_seq = np.zeros(episode_length)
 for epoch in tqdm(range(500), desc="Epochs"):
     obs = env.reset()
@@ -109,9 +111,10 @@ for epoch in tqdm(range(500), desc="Epochs"):
 
         # 从 infos 中提取 sending_rate 和 pi
         sending_rates = np.array([info['sending_rates'] for info in infos], dtype=np.float32)  # shape: (agent_num,)
+        total_sending_rate += np.sum(sending_rates)
         pis = np.array([info['priority'] for info in infos], dtype=np.float32)
         throughput = np.array([info['throughput'] for info in infos], dtype=np.float32)
-
+        total_throughput += np.sum(throughput)
         # 计算分子和分母
         numerator = np.sum(throughput * pis) ** 2
         denominator = np.sum((throughput * pis) ** 2) * num_agents
@@ -125,54 +128,72 @@ for epoch in tqdm(range(500), desc="Epochs"):
     total_WFI_seq += WFI_seq
 
 total_WFI_seq /= 500
+print(f"Total throughput: {total_throughput:.4f}")
+print(f"ratio: {total_throughput/total_sending_rate:.4f}")
 print("average_rewards:", np.average(epoch_rewards))
 print("total_action_dis:", total_action_dis / total_action_dis.sum())
-# 绘制total_action_dis / total_action_dis.sum()的柱状图
+
+print(f"Total throughput: {total_throughput:.4f}")
+print(f"ratio: {total_throughput/total_sending_rate:.4f}")
+print(f"Final average reward: {np.mean(epoch_rewards):.4f}")
 plt.figure(figsize=(10, 6))
-plt.bar(range(11), total_action_dis / total_action_dis.sum())
-plt.xlabel('Actions')
-plt.ylabel('Percentage (%)')
-plt.title('Distribution of Actions')
-plt.xticks(range(11))
-plt.grid(True, alpha=0.3)
-plt.tight_layout()
+
+# 绘制折线图
+plt.plot(WFI_seq)
+
+# 添加标题和标签
+plt.title('WFI Sequence')
+plt.xlabel('Index')
+plt.ylabel('WFI Value')
+
+# 显示图形
 plt.show()
-# 使用KDE绘制平滑的密度分布曲线
-flat_bo = np.array(total_bo).flatten()
-density = gaussian_kde(flat_bo)
-xs = np.linspace(flat_bo.min(), flat_bo.max(), 200)
-plt.figure(figsize=(10, 6))
-plt.plot(xs, density(xs), 'b-', lw=2)
-plt.fill_between(xs, density(xs), alpha=0.2)
-plt.xlabel('Values')
-plt.ylabel('Density')
-plt.title('Smooth Distribution of BO values')
-plt.grid(True, alpha=0.3)
-plt.show()
+# # 绘制total_action_dis / total_action_dis.sum()的柱状图
+# plt.figure(figsize=(10, 6))
+# plt.bar(range(11), total_action_dis / total_action_dis.sum())
+# plt.xlabel('Actions')
+# plt.ylabel('Percentage (%)')
+# plt.title('Distribution of Actions')
+# plt.xticks(range(11))
+# plt.grid(True, alpha=0.3)
+# plt.tight_layout()
+# plt.show()
+# # 使用KDE绘制平滑的密度分布曲线
+# flat_bo = np.array(total_bo).flatten()
+# density = gaussian_kde(flat_bo)
+# xs = np.linspace(flat_bo.min(), flat_bo.max(), 200)
+# plt.figure(figsize=(10, 6))
+# plt.plot(xs, density(xs), 'b-', lw=2)
+# plt.fill_between(xs, density(xs), alpha=0.2)
+# plt.xlabel('Values')
+# plt.ylabel('Density')
+# plt.title('Smooth Distribution of BO values')
+# plt.grid(True, alpha=0.3)
+# plt.show()
 
 
 
-# 定义区间
-bins = [(0, 0.4), (0.4, 0.8), (0.8, 1.2), (1.2, 1.6), (1.6, 2.0), (2.0, float('inf'))]
-labels = ['0-0.4', '0.4-0.8', '0.8-1.2', '1.2-1.6', '1.6-2.0', '>2']
+# # 定义区间
+# bins = [(0, 0.4), (0.4, 0.8), (0.8, 1.2), (1.2, 1.6), (1.6, 2.0), (2.0, float('inf'))]
+# labels = ['0-0.4', '0.4-0.8', '0.8-1.2', '1.2-1.6', '1.6-2.0', '>2']
 
-# 计算每个区间的数据占比
-total_count = len(flat_bo)
-percentages = []
+# # 计算每个区间的数据占比
+# total_count = len(flat_bo)
+# percentages = []
 
-for start, end in bins:
-    count = np.sum((flat_bo >= start) & (flat_bo < end))
-    percentage = (count / total_count) * 100
-    percentages.append(percentage)
+# for start, end in bins:
+#     count = np.sum((flat_bo >= start) & (flat_bo < end))
+#     percentage = (count / total_count) * 100
+#     percentages.append(percentage)
 
-print(percentages)
-# 绘制柱状图
-plt.figure(figsize=(10, 6))
-plt.bar(labels, percentages)
-plt.xlabel('BO Value Ranges')
-plt.ylabel('Percentage (%)')
-plt.title('Distribution of BO Values by Range')
-plt.xticks(rotation=45)
-plt.grid(True, alpha=0.3)
-plt.tight_layout()
-plt.show()
+# print(percentages)
+# # 绘制柱状图
+# plt.figure(figsize=(10, 6))
+# plt.bar(labels, percentages)
+# plt.xlabel('BO Value Ranges')
+# plt.ylabel('Percentage (%)')
+# plt.title('Distribution of BO Values by Range')
+# plt.xticks(rotation=45)
+# plt.grid(True, alpha=0.3)
+# plt.tight_layout()
+# plt.show()
