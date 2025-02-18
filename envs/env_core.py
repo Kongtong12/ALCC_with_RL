@@ -17,7 +17,7 @@ class EnvCore(object):
         self.pi = np.ones(self.agent_num) # 每个节点的优先级，用于计算收益。在这里简化为所有节点拥有相同的优先级
         #下面定义的是选择父亲节点后，leaf node的payoff function
         self.w1 = 15.
-        self.w2 = 3.
+        self.w2 = 7.
         self.w3 = 0.9
         self.xi_max = np.full(self.agent_num,8.0) # 这里设置了每个节点的最大传输速率
 
