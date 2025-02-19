@@ -46,7 +46,7 @@ from config import get_config
 from tqdm import tqdm
 
 # checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run36\models\actor.pt', map_location=torch.device('cuda'))
-checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run10\models\actor.pt', map_location=torch.device('cuda'))
+checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run53\models\actor.pt', map_location=torch.device('cuda'))
 # laptop段55较好
 if isinstance(checkpoint, dict):
     if 'state_dict' in checkpoint:
@@ -133,9 +133,9 @@ print(f"ratio: {total_throughput/total_sending_rate:.4f}")
 print("average_rewards:", np.average(epoch_rewards))
 print("total_action_dis:", total_action_dis / total_action_dis.sum())
 
-print(f"Total throughput: {total_throughput:.4f}")
-print(f"ratio: {total_throughput/total_sending_rate:.4f}")
-print(f"Final average reward: {np.mean(epoch_rewards):.4f}")
+# print(f"Total throughput: {total_throughput:.4f}")
+# print(f"ratio: {total_throughput/total_sending_rate:.4f}")
+# print(f"Final average reward: {np.mean(epoch_rewards):.4f}")
 plt.figure(figsize=(10, 6))
 
 # 绘制折线图
