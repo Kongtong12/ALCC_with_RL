@@ -39,7 +39,7 @@ class EnvCore(object):
         # 初始化 BO 值（上一个时刻进入父节点的流量），初始化为 0
         self.bo = np.zeros(self.parent_num)
         #初始化每个父亲节点的最大传输速率
-        self.xi_out = np.array([15.,15.,15.])
+        self.xi_out = np.array([12.8,12.8,12.8])
 
         # 初始化智能体的上一个父节点选择，随机分配或设为 -1（表示初始状态）
         self.prev_parent = np.zeros([self.agent_num, self.parent_num])  # -1 表示未选择任何父节点
