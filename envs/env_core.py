@@ -45,6 +45,7 @@ class EnvCore(object):
 
         # 初始化智能体的上一个父节点选择，随机分配或设为 -1（表示初始状态）
         self.prev_parent = np.zeros([self.agent_num, self.parent_num])  # -1 表示未选择任何父节点
+        self.current_parent = np.zeros([self.agent_num, self.parent_num])  # -1 表示未选择任何父节点
 
         #开始时刻，初始化所有leaf node的发送速率为0
         self.sending_rates = np.zeros(self.agent_num)  # 所有智能体的发送速率
@@ -72,6 +73,8 @@ class EnvCore(object):
         - info_n: 额外信息（此处为空字典）
         """
         # 更新智能体的父节点选择
+        # TODO check if the bo is suitable
+        self._update_bo()
         self.current_parent = actions
 
         # 计算切换惩罚
@@ -88,7 +91,7 @@ class EnvCore(object):
         self.avg_pi = self.get_avg_pi()
 
         # 更新上一个时间节点进入父节点的Bo,发送速率,奖励
-        self._update_bo()
+        
         self._compute_sending_rates()
         # 下面做一下简单尝试 
         rewards = self._compute_rewards(switch_penalty)
@@ -100,12 +103,23 @@ class EnvCore(object):
         dones = [False] * self.agent_num
         infos = [{} for _ in range(self.agent_num)]
 
-    
+        # TODO bo
+        bo = np.zeros(self.parent_num)
+        current_parent = np.argmax(self.current_parent, axis=1)
+        # 累加每个父节点接收到的发送速率
+        for j in range(self.parent_num):
+            # 获取选择了父节点 j 的智能体索引
+            agents_selecting_j = np.where(current_parent == j)[0]
+            # 累加这些智能体的发送速率
+            total_rate = np.sum(self.sending_rates[agents_selecting_j] / self.etx[agents_selecting_j, j])
+            # 修改了bo的计算方式
+            bo[j] = total_rate / self.xi_out[j]
+
         # 填充 infos 中的发送速率和优先级
         for i in range(self.agent_num):
             infos[i]['sending_rates'] = self.sending_rates[i]
             infos[i]['priority'] = self.pi[i]
-            infos[i]['throughput'] = self.sending_rates[i] / (self.etx[i, np.argmax(self.current_parent[i])] * np.maximum(self.bo[np.argmax(self.current_parent[i])], 1))
+            infos[i]['throughput'] = self.sending_rates[i] / (self.etx[i, np.argmax(self.current_parent[i])] * np.maximum(bo[np.argmax(self.current_parent[i])], 1))
         
         return [obs, rewards, dones, infos]
     
