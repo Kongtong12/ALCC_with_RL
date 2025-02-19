@@ -19,7 +19,7 @@ class EnvCore(object):
         self.w1 = 15.
         self.w2 = 7.
         self.w3 = 0.9
-        self.xi_max = np.full(self.agent_num,8.0) # 这里设置了每个节点的最大传输速率
+        self.xi_max = np.full(self.agent_num,12.0) # 这里设置了每个节点的最大传输速率
 
         # 初始化奖励参数，使用kwargs传递
         self.alpha = kwargs.get('alpha', -1.0)
@@ -35,7 +35,7 @@ class EnvCore(object):
         # When self.agent_num is set to 2 agents, the return value is a list, each list contains a shape = (self.obs_dim, ) observation data
         """
         # 初始化 ETX 值（叶节点到父节点的链路质量）
-        self.etx = np.random.uniform(1.0, 1.3, size=(self.agent_num, self.parent_num))
+        self.etx = np.random.uniform(1.02, 1.08, size=(self.agent_num, self.parent_num))
         # 初始化 BO 值（上一个时刻进入父节点的流量），初始化为 0
         self.bo = np.zeros(self.parent_num)
         #初始化每个父亲节点的最大传输速率
@@ -50,6 +50,8 @@ class EnvCore(object):
         # 初始化每个智能体的优先级，在1到3之间连续选择，形状为 (parent_num,)
         self.pi = np.random.randint(1, 4, size=self.agent_num)
         self.pi = self.pi.astype(np.float32)
+
+        self.xi_max = np.full(self.agent_num,12.0) / self.pi
 
         self.avg_pi = np.zeros(self.parent_num)
 
@@ -80,7 +82,7 @@ class EnvCore(object):
         # 更新 ETX（可加入动态变化，此处简单模拟随机波动）注意，在这里需要设置偏好
         etx_fluctuation = np.random.normal(0, 0.01, size=(self.agent_num, self.parent_num))
         self.etx += etx_fluctuation
-        self.etx = np.clip(self.etx, 1.0, 1.3)
+        self.etx = np.clip(self.etx, 1.02, 1.08)
 
         #这里我尝试更新每个节点的优先级
         # pi_fluctuation = np.random.normal(0, 0.1, size=self.agent_num)
@@ -151,7 +153,8 @@ class EnvCore(object):
         pi_sums = np.bincount(current_parent, weights=pi_inverse, minlength=self.parent_num)
         # 下面为计算的过程
         for i in range(self.agent_num):
-            self.sending_rates[i] = 1.0 / self.pi[i] / pi_sums[current_parent[i]] * self.xi_out[current_parent[i]]
+            tmp = 1.0 / self.pi[i] / pi_sums[current_parent[i]] * self.xi_out[current_parent[i]]
+            self.sending_rates[i] = np.minimum(tmp, self.xi_max[i])
 
 
     def _update_bo(self):
