@@ -79,7 +79,7 @@ print(f"Final average reward: {np.mean(epoch_rewards):.4f}")
 plt.figure(figsize=(10, 6))
 
 # 绘制折线图
-plt.plot(WFI_seq)
+plt.plot(total_WFI_seq)
 
 # 添加标题和标签
 plt.title('WFI Sequence')

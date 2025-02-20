@@ -52,7 +52,7 @@ class EnvCore(object):
         self.pi = np.random.randint(1, 4, size=self.agent_num)
         self.pi = self.pi.astype(np.float32)
 
-        self.xi_max = np.full(self.agent_num,12.0) / self.pi
+        self.xi_max = np.full(self.agent_num,9.0) / self.pi
 
         self.avg_pi = np.zeros(self.parent_num)
 
