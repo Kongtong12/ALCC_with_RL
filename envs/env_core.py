@@ -19,7 +19,7 @@ class EnvCore(object):
         self.w1 = 15.
         self.w2 = 7.
         self.w3 = 0.9
-        self.xi_max = np.full(self.agent_num,8.0) # 这里设置了每个节点的最大传输速率
+        self.xi_max = np.full(self.agent_num,12.0) # 这里设置了每个节点的最大传输速率
 
         # 初始化奖励参数，使用kwargs传递
         self.alpha = kwargs.get('alpha', -1.0)
@@ -35,14 +35,15 @@ class EnvCore(object):
         # When self.agent_num is set to 2 agents, the return value is a list, each list contains a shape = (self.obs_dim, ) observation data
         """
         # 初始化 ETX 值（叶节点到父节点的链路质量）
-        self.etx = np.random.uniform(1.0, 1.3, size=(self.agent_num, self.parent_num))
+        self.etx = np.random.uniform(1.02, 1.08, size=(self.agent_num, self.parent_num))
         # 初始化 BO 值（上一个时刻进入父节点的流量），初始化为 0
         self.bo = np.zeros(self.parent_num)
         #初始化每个父亲节点的最大传输速率
-        self.xi_out = np.array([15.,15.,15.])
+        self.xi_out = np.array([12.8,12.8,12.8])
 
         # 初始化智能体的上一个父节点选择，随机分配或设为 -1（表示初始状态）
         self.prev_parent = np.zeros([self.agent_num, self.parent_num])  # -1 表示未选择任何父节点
+        self.current_parent = np.zeros([self.agent_num, self.parent_num])  # -1 表示未选择任何父节点
 
         #开始时刻，初始化所有leaf node的发送速率为0
         self.sending_rates = np.zeros(self.agent_num)  # 所有智能体的发送速率
@@ -50,6 +51,8 @@ class EnvCore(object):
         # 初始化每个智能体的优先级，在1到3之间连续选择，形状为 (parent_num,)
         self.pi = np.random.randint(1, 4, size=self.agent_num)
         self.pi = self.pi.astype(np.float32)
+
+        self.xi_max = np.full(self.agent_num,12.0) / self.pi
 
         self.avg_pi = np.zeros(self.parent_num)
 
@@ -70,6 +73,8 @@ class EnvCore(object):
         - info_n: 额外信息（此处为空字典）
         """
         # 更新智能体的父节点选择
+        # TODO check if the bo is suitable
+        self._update_bo()
         self.current_parent = actions
 
         # 计算切换惩罚
@@ -80,15 +85,13 @@ class EnvCore(object):
         # 更新 ETX（可加入动态变化，此处简单模拟随机波动）注意，在这里需要设置偏好
         etx_fluctuation = np.random.normal(0, 0.01, size=(self.agent_num, self.parent_num))
         self.etx += etx_fluctuation
-        self.etx = np.clip(self.etx, 1.0, 1.3)
+        self.etx = np.clip(self.etx, 1.02, 1.08)
 
-        #这里我尝试更新每个节点的优先级
-        # pi_fluctuation = np.random.normal(0, 0.1, size=self.agent_num)
-        # self.pi += pi_fluctuation
-        # self.pi = np.clip(self.pi, 0.0, 4.0)
+        # 更新选择新的拓扑下的avg_pi
+        self.avg_pi = self.get_avg_pi()
 
         # 更新上一个时间节点进入父节点的Bo,发送速率,奖励
-        self._update_bo()
+        
         self._compute_sending_rates()
         # 下面做一下简单尝试 
         rewards = self._compute_rewards(switch_penalty)
@@ -100,12 +103,23 @@ class EnvCore(object):
         dones = [False] * self.agent_num
         infos = [{} for _ in range(self.agent_num)]
 
-    
+        # TODO bo
+        bo = np.zeros(self.parent_num)
+        current_parent = np.argmax(self.current_parent, axis=1)
+        # 累加每个父节点接收到的发送速率
+        for j in range(self.parent_num):
+            # 获取选择了父节点 j 的智能体索引
+            agents_selecting_j = np.where(current_parent == j)[0]
+            # 累加这些智能体的发送速率
+            total_rate = np.sum(self.sending_rates[agents_selecting_j] / self.etx[agents_selecting_j, j])
+            # 修改了bo的计算方式
+            bo[j] = total_rate / self.xi_out[j]
+
         # 填充 infos 中的发送速率和优先级
         for i in range(self.agent_num):
             infos[i]['sending_rates'] = self.sending_rates[i]
             infos[i]['priority'] = self.pi[i]
-            infos[i]['throughput'] = self.sending_rates[i] / (self.etx[i, np.argmax(self.current_parent[i])] * np.maximum(self.bo[np.argmax(self.current_parent[i])], 1))
+            infos[i]['throughput'] = self.sending_rates[i] / (self.etx[i, np.argmax(self.current_parent[i])] * np.maximum(bo[np.argmax(self.current_parent[i])], 1))
         
         return [obs, rewards, dones, infos]
     
