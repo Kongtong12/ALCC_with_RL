@@ -46,7 +46,7 @@ from config import get_config
 from tqdm import tqdm
 
 # checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run36\models\actor.pt', map_location=torch.device('cuda'))
-checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run53\models\actor.pt', map_location=torch.device('cuda'))
+checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run9\models\actor.pt', map_location=torch.device('cuda'))
 # laptop段55较好
 if isinstance(checkpoint, dict):
     if 'state_dict' in checkpoint:
@@ -139,7 +139,7 @@ print("total_action_dis:", total_action_dis / total_action_dis.sum())
 plt.figure(figsize=(10, 6))
 
 # 绘制折线图
-plt.plot(WFI_seq)
+plt.plot(total_WFI_seq)
 
 # 添加标题和标签
 plt.title('WFI Sequence')
