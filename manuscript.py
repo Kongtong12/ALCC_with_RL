@@ -38,7 +38,7 @@ for epoch in tqdm(range(num_epochs), desc="Epochs"):
     # 执行时间步
     for step in range(steps_per_epoch):
         # 选择动作
-        actions = env.take_action()
+        actions = env.OHCA_take_action()
         # 将actions转换为one_hot编码,对one_hot编码纵向相加，得到一个三维numpy数组，以这三个量的大小作为index加到total_action_dis中  
         sum_one_hot = actions.sum(axis=0)
         indices = sum_one_hot.astype(int)

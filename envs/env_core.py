@@ -329,7 +329,7 @@ class EnvCore(object):
         
         return self.avg_pi
 
-    def gray_relational_analysis(self, decision_matrix, zeta=0.5):
+    def gray_relational_analysis(self, decision_matrix, current_parent, zeta=0.5):
         """
         Performs Gray Relational Analysis (GRA) for parent selection.
 
@@ -407,6 +407,8 @@ class EnvCore(object):
         for i in range(m):
             gray_grades[i] = np.sum(weights * gray_coefficients[i, :])
 
+        gray_grades += 0.6 * current_parent  # Add a small bonus for the current parent
+
         # --- 5. Parent Selection (Find parent with highest Gray Relational Grade) ---
         selected_parent_index = np.argmax(gray_grades)  # Index of the best parent
 
@@ -423,8 +425,9 @@ class EnvCore(object):
             decision_matrix_agent[:, 0] = self.etx[agent_index, :]  # ETX values (column 1)
             decision_matrix_agent[:, 1] = self.bo[:]               # BO values (column 2) - Assuming same BO for all agents
 
+            current_p = self.current_parent[agent_index]
             # Perform GRA to select the best parent for the current agent
-            selected_parent_index = self.gray_relational_analysis(decision_matrix_agent)
+            selected_parent_index = self.gray_relational_analysis(decision_matrix_agent, current_p)
             agent_parent_selections[agent_index] = selected_parent_index
 
         # Convert parent indices to one-hot encoded actions
