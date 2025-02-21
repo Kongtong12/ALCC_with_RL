@@ -41,7 +41,12 @@ class EnvCore(object):
         # 初始化 BO 值（上一个时刻进入父节点的流量），初始化为 0
         self.bo = np.zeros(self.parent_num)
         #初始化每个父亲节点的最大传输速率
-        self.xi_out = np.array([12.8,12.8,12.8])
+        
+        self.xi_out_base = np.array([12.8,12.8,12.8])
+        # 这里的xi_out用来存储预测值
+        self.xi_out = self.xi_out_base
+        self.xi_out_2 = self.xi_out_base
+        self.xi_out_1 = self.xi_out_base
 
         # 初始化智能体的上一个父节点选择，随机分配或设为 -1（表示初始状态）
         self.prev_parent = np.zeros([self.agent_num, self.parent_num])  # -1 表示未选择任何父节点
@@ -90,9 +95,19 @@ class EnvCore(object):
         # 更新选择新的拓扑下的avg_pi
         self.avg_pi = self.get_avg_pi()
 
+        # 计算智能体的发送速率
+        self._compute_sending_rates()
+
+        # 更新每个节点的xi_out
+        new_xi_out = np.clip(0.7 * self.xi_out_1 + 0.3 * self.xi_out_base + np.random.normal(0, 1, size=(self.parent_num,)), 10, 15)
+        self.xi_out_2 = self.xi_out_1
+        self.xi_out_1 = new_xi_out
+
+
+
         # 更新上一个时间节点进入父节点的Bo,发送速率,奖励
         
-        self._compute_sending_rates()
+
         # 下面做一下简单尝试 
         rewards = self._compute_rewards(switch_penalty)
         '''rewards1 = []
@@ -113,7 +128,7 @@ class EnvCore(object):
             # 累加这些智能体的发送速率
             total_rate = np.sum(self.sending_rates[agents_selecting_j] / self.etx[agents_selecting_j, j])
             # 修改了bo的计算方式
-            bo[j] = total_rate / self.xi_out[j]
+            bo[j] = total_rate / new_xi_out[j]
 
         # 填充 infos 中的发送速率和优先级
         for i in range(self.agent_num):
@@ -159,6 +174,7 @@ class EnvCore(object):
         """
         current_parent = np.argmax(self.current_parent, axis=1)
         counts = np.bincount(current_parent, minlength=self.parent_num)
+        self.xi_out = 0.7 * self.xi_out_2 + 0.3 * self.xi_out_1
         # 下面为计算的过程
         for i in range(self.agent_num):
             parent_idx = current_parent[i]
@@ -183,7 +199,7 @@ class EnvCore(object):
             total_rate = np.sum(self.sending_rates[agents_selecting_j] / self.etx[agents_selecting_j, j])
             # 修改了bo的计算方式
 
-            self.bo[j] = total_rate / self.xi_out[j]
+            self.bo[j] = total_rate / self.xi_out_1[j]
 
     def _compute_rewards(self, switch_penalty):
         """
@@ -213,8 +229,8 @@ class EnvCore(object):
 
         # 4) 为每个智能体映射其对应父节点的 n, numerator, xi_out
         n_parent       = n_count[parent_idx]        # shape: (agent_num, )
-        numerator_par  = numerator[parent_idx]      # shape: (agent_num, )
-        xi_out_par     = self.xi_out[parent_idx]    # shape: (agent_num, )
+        # numerator_par  = numerator[parent_idx]      # shape: (agent_num, )
+        # xi_out_par     = self.xi_out[parent_idx]    # shape: (agent_num, )
 
         # ============ 计算 Omega_i (向量化) ============
         # omega_i[i] = w1 * log(sending_rates[i]+1) 
