@@ -36,7 +36,7 @@ class DiscreteActionEnv(object):
         self.observation_space = []
         self.share_observation_space = []
 
-        share_obs_dim = 2 * self.env.parent_num
+        share_obs_dim = 3 * self.env.parent_num
         total_action_space = []
         for agent_idx in range(self.num_agent):
             # physical action space
@@ -48,7 +48,7 @@ class DiscreteActionEnv(object):
             self.action_space.append(total_action_space[agent_idx])
 
             # observation space
-            share_obs_dim += self.signal_obs_dim - 2 * self.parent_num
+            share_obs_dim += self.signal_obs_dim - 3 * self.parent_num
             self.observation_space.append(
                 spaces.Box(
                     low=-np.inf,

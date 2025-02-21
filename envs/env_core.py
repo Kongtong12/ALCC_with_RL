@@ -10,7 +10,7 @@ class EnvCore(object):
         self.if_rand_pi = True # 是否随机初始化优先级
         self.agent_num = kwargs.get('agent_num', 10)  # 设置智能体的个数，leaf node的数量为10
         self.parent_num = 3  # 父节点数量
-        self.obs_dim = 4 * self.parent_num + 1  # 每个parent node对应的ETX，bo，pi的综合状态 ,自身的优先级,上一个时刻的parent node选择
+        self.obs_dim = 5 * self.parent_num + 1  # 每个parent node对应的ETX，bo，xi_in, pi的综合状态 ,自身的优先级,上一个时刻的parent node选择
         self.action_dim = self.parent_num  # 设置智能体的动作维度，这里对应parent node的个数
 
 
@@ -149,6 +149,8 @@ class EnvCore(object):
         # 获取所有父节点的 BO 值
         bo_obs = self.bo  # 形状为 (parent_num,)
 
+        xi_out_obs = self.xi_out_1  # 形状为 (parent_num,)
+
         # 获取所有父节点下的智能体的平均优先级
         avg_pi_obs = self.avg_pi  # 形状为 (parent_num,)
         for i in range(self.agent_num):
@@ -160,7 +162,7 @@ class EnvCore(object):
 
             # 拼接观测向量
             if self.if_rand_pi:
-                obs = np.concatenate([etx_obs, bo_obs, avg_pi_obs, np.array([pi_obs]), self.prev_parent[i]])
+                obs = np.concatenate([etx_obs, bo_obs, xi_out_obs, avg_pi_obs, np.array([pi_obs]), self.prev_parent[i]])
             else:
                 obs = np.concatenate([etx_obs, bo_obs, self.prev_parent[i]])
 
