@@ -10,7 +10,7 @@ class EnvCore(object):
         self.if_rand_pi = True # 是否随机初始化优先级
         self.agent_num = kwargs.get('agent_num', 10)  # 设置智能体的个数，leaf node的数量为10
         self.parent_num = 3  # 父节点数量
-        self.obs_dim = 5 * self.parent_num + 1  # 每个parent node对应的ETX，bo，xi_in, pi的综合状态 ,自身的优先级,上一个时刻的parent node选择
+        self.obs_dim = 4 * self.parent_num + 1  # 每个parent node对应的bo，xi_in, pi的综合状态 ,自身的优先级,上一个时刻的parent node选择
         self.action_dim = self.parent_num  # 设置智能体的动作维度，这里对应parent node的个数
 
 
@@ -162,7 +162,8 @@ class EnvCore(object):
 
             # 拼接观测向量
             if self.if_rand_pi:
-                obs = np.concatenate([etx_obs, bo_obs, xi_out_obs, avg_pi_obs, np.array([pi_obs]), self.prev_parent[i]])
+                obs = np.concatenate([bo_obs, xi_out_obs/12.8, avg_pi_obs, np.array([pi_obs]), self.prev_parent[i]])
+                #obs = np.concatenate([xi_out_obs / 12.8, bo_obs,  avg_pi_obs, np.array([pi_obs]), self.prev_parent[i]])
             else:
                 obs = np.concatenate([etx_obs, bo_obs, self.prev_parent[i]])
 
@@ -238,10 +239,10 @@ class EnvCore(object):
         # omega_i[i] = w1 * log(sending_rates[i]+1) 
         #              - w2 * n_parent[i] * ( numerator_par[i] / denominator_par[i] )
         #              - w3 * pi[i] * sending_rates[i]
-        omega_i = self.w1 * np.log(adjusted_sending_rates + 1.0) \
+        omega_i = self.xi_out_1[parent_idx] / self.w5 * self.w1 * np.log(adjusted_sending_rates * self.w5 / self.xi_out_1[parent_idx] + 1.0) \
                 - self.w2 * n_parent \
-                - self.w3 * (self.pi - self.avg_pi[parent_idx]) * self.sending_rates / self.w5 \
-                - self.w4 * self.sending_rates / self.w5            # shape: (agent_num, )
+                - self.w3 * (self.pi - self.avg_pi[parent_idx]) * self.sending_rates / self.xi_out_1[parent_idx] \
+                - self.w4 * self.sending_rates / self.xi_out_1[parent_idx]            # shape: (agent_num, )
         # omega_i = self.w1 * np.log(adjusted_sending_rates + 1.0) \
         #         - self.w2 * n_parent * (numerator_par / xi_out_par) \
         #         - self.w3 * (self.pi - self.avg_pi[parent_idx]) * self.sending_rates / self.w5 \
