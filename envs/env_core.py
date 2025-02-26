@@ -35,11 +35,16 @@ class EnvCore(object):
         # When self.agent_num is set to 2 agents, the return value is a list, each list contains a shape = (self.obs_dim, ) observation data
         """
         # 初始化 ETX 值（叶节点到父节点的链路质量）
-        self.etx = np.random.uniform(1.02, 1.08, size=(self.agent_num, self.parent_num))
+        self.etx = np.random.uniform(1.00, 1.02, size=(self.agent_num, self.parent_num))
         # 初始化 BO 值（上一个时刻进入父节点的流量），初始化为 0
         self.bo = np.zeros(self.parent_num)
         #初始化每个父亲节点的最大传输速率
-        self.xi_out = np.array([12.8,12.8,12.8])
+        
+        self.xi_out_base = np.array([12.8,12.8,12.8])
+        # 这里的xi_out用来存储预测值
+        self.xi_out = self.xi_out_base
+        self.xi_out_2 = self.xi_out_base
+        self.xi_out_1 = self.xi_out_base
 
         # 初始化智能体的上一个父节点选择，随机分配或设为 -1（表示初始状态）
         self.prev_parent = np.zeros([self.agent_num, self.parent_num])  # -1 表示未选择任何父节点
@@ -51,8 +56,6 @@ class EnvCore(object):
         # 初始化每个智能体的优先级，在1到3之间连续选择，形状为 (parent_num,)
         self.pi = np.random.randint(1, 4, size=self.agent_num)
         self.pi = self.pi.astype(np.float32)
-
-        self.xi_max = np.full(self.agent_num,12.0) / self.pi
 
         self.avg_pi = np.zeros(self.parent_num)
 
