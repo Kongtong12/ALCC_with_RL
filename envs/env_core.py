@@ -145,6 +145,8 @@ class EnvCore(object):
         # 获取所有父节点的 BO 值
         bo_obs = self.bo  # 形状为 (parent_num,)
 
+        xi_out_obs = 0.7 * self.xi_out_1 + 0.3 * self.xi_out_base # 形状为 (parent_num,)
+
         # 获取所有父节点下的智能体的平均优先级
         avg_pi_obs = self.avg_pi  # 形状为 (parent_num,)
         for i in range(self.agent_num):
@@ -173,6 +175,7 @@ class EnvCore(object):
         """
         current_parent = np.argmax(self.current_parent, axis=1)
         counts = np.bincount(current_parent, minlength=self.parent_num)
+        xi_out_obs = 0.7 * self.xi_out_1 + 0.3 * self.xi_out_base
         # 下面为计算的过程
         counts_w2 = counts * self.w2 / (self.xi_out + 1)
         for i in range(self.agent_num):
@@ -183,7 +186,7 @@ class EnvCore(object):
             elif (counts_w2[parent_idx] * sigma + self.w3 * self.pi[i] <= self.w1 / (1 + self.xi_max[i])):
                 self.sending_rates[i] = self.xi_max[i]
             else:
-                self.sending_rates[i] = -1+self.w1*(1+self.xi_out[parent_idx])/(self.w2*counts[parent_idx]*sigma+self.w3*self.pi[i]*(self.xi_out[parent_idx]+1))
+                self.sending_rates[i] = -1+self.w1*(1+xi_out_obs[parent_idx])/(self.w2*counts[parent_idx]*sigma+self.w3*self.pi[i]*(xi_out_obs[parent_idx]+1))
 
 
     def _update_bo(self):
@@ -310,7 +313,7 @@ class EnvCore(object):
         switch_penalty -= self.prev_parent
         
         # 添加切换惩罚
-        of1_values += 0.8*switch_penalty
+        of1_values += 0.7*switch_penalty
         
         # 找到每个智能体的最优父节点
         best_parents = np.argmin(of1_values, axis=1)
