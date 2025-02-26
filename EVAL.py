@@ -46,7 +46,7 @@ from config import get_config
 from tqdm import tqdm
 
 # checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run36\models\actor.pt', map_location=torch.device('cuda'))
-checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run9\models\actor.pt', map_location=torch.device('cuda'))
+checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run59\models\actor.pt', map_location=torch.device('cuda'))
 # laptop段55较好
 if isinstance(checkpoint, dict):
     if 'state_dict' in checkpoint:
@@ -92,10 +92,12 @@ total_action_dis = np.zeros(11)
 total_throughput = 0
 total_sending_rate = 0
 total_WFI_seq = np.zeros(episode_length)
+total_throughput_seq = np.zeros(episode_length)
 for epoch in tqdm(range(500), desc="Epochs"):
     obs = env.reset()
     total_rewards = 0
     WFI_seq = np.zeros(episode_length)
+    throughput_seq = np.zeros(episode_length)
     # 以下是一个episode的循环
     for step in range(episode_length):
         actions, _,rnn_states = actor(obs, eval_rnn_states, eval_masks, deterministic=False,)
@@ -120,14 +122,17 @@ for epoch in tqdm(range(500), desc="Epochs"):
         denominator = np.sum((throughput * pis) ** 2) * num_agents
         current_WFI = numerator / denominator
         WFI_seq[step] = current_WFI
+        throughput_seq[step] = np.sum(throughput)
         if step:
             total_bo.append(obs[0][parent_num:2*parent_num])
         total_rewards += np.average(rewards)
     #print(f"Epoch {epoch + 1}/{50}, Average Reward: {total_rewards:.4f}")
     epoch_rewards.append(total_rewards)
     total_WFI_seq += WFI_seq
+    total_throughput_seq += throughput_seq
 
 total_WFI_seq /= 500
+total_throughput_seq /= 500
 print(f"Total throughput: {total_throughput:.4f}")
 print(f"ratio: {total_throughput/total_sending_rate:.4f}")
 print("average_rewards:", np.average(epoch_rewards))
@@ -148,6 +153,13 @@ plt.ylabel('WFI Value')
 
 # 显示图形
 plt.show()
+
+# 绘制throughput的折线图
+plt.figure(figsize=(10, 6))
+plt.plot(total_throughput_seq)
+plt.title('Throughput Sequence')
+plt.xlabel('Index')
+plt.ylabel('Throughput Value')
 # # 绘制total_action_dis / total_action_dis.sum()的柱状图
 # plt.figure(figsize=(10, 6))
 # plt.bar(range(11), total_action_dis / total_action_dis.sum())
