@@ -25,6 +25,8 @@ epoch_rewards = []
 total_bo = []
 total_action_dis = np.zeros(11)
 total_WFI_seq = np.zeros(steps_per_epoch)
+total_throughput_seq = np.zeros(steps_per_epoch)
+total_ratio_seq = np.zeros(steps_per_epoch)
 total_sending_rate = 0
 total_throughput = 0
 
@@ -34,7 +36,8 @@ for epoch in tqdm(range(num_epochs), desc="Epochs"):
     epoch_reward = 0
     epoch_reward_1 = 0
     WFI_seq = np.zeros(steps_per_epoch)
-    
+    throughput_seq = np.zeros(steps_per_epoch)
+    ratio_seq = np.zeros(steps_per_epoch)
     # 执行时间步
     for step in range(steps_per_epoch):
         # 选择动作
@@ -56,7 +59,8 @@ for epoch in tqdm(range(num_epochs), desc="Epochs"):
         denominator = np.sum((throughput * pis) ** 2) * num_agents
         current_WFI = numerator / denominator
         WFI_seq[step] = current_WFI
-        
+        throughput_seq[step] = np.sum(throughput)
+        ratio_seq[step] = np.sum(throughput) / np.sum(sending_rates)
         # 累积奖励
         if step:
             epoch_reward += np.average(reward)
@@ -68,8 +72,15 @@ for epoch in tqdm(range(num_epochs), desc="Epochs"):
     # 计算该epoch的平均奖励
     epoch_rewards.append(epoch_reward)
     total_WFI_seq += WFI_seq
+    total_throughput_seq += throughput_seq
+    total_ratio_seq += ratio_seq
 
 total_WFI_seq /= 500
+total_throughput_seq /= 500
+total_ratio_seq /= 500
+np.save('OHCA_WFI.npy', total_WFI_seq)
+np.save('OHCA_throughput.npy', total_throughput_seq)
+np.save('OHCA_ratio.npy', total_ratio_seq)
 
 # 输出总体训练结果
 #print(f"\nTraining completed!")

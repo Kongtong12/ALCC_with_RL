@@ -1,3 +1,6 @@
 *.pyc
 results
 .*
+OHCA_throughput.npy
+OHCA_WFI.npy
+OHCA_ratio.npy
