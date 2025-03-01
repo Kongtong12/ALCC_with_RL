@@ -1,3 +1,9 @@
 *.pyc
 results
 .*
+RL_ratio.npy
+RL_throughput.npy
+RL_WFI.npy
+OHCA_ratio.npy
+OHCA_throughput.npy
+OHCA_WFI.npy

@@ -93,11 +93,13 @@ total_throughput = 0
 total_sending_rate = 0
 total_WFI_seq = np.zeros(episode_length)
 total_throughput_seq = np.zeros(episode_length)
+total_ratio_seq = np.zeros(episode_length)
 for epoch in tqdm(range(500), desc="Epochs"):
     obs = env.reset()
     total_rewards = 0
     WFI_seq = np.zeros(episode_length)
     throughput_seq = np.zeros(episode_length)
+    ratio_seq = np.zeros(episode_length)
     # 以下是一个episode的循环
     for step in range(episode_length):
         actions, _,rnn_states = actor(obs, eval_rnn_states, eval_masks, deterministic=False,)
@@ -123,6 +125,7 @@ for epoch in tqdm(range(500), desc="Epochs"):
         current_WFI = numerator / denominator
         WFI_seq[step] = current_WFI
         throughput_seq[step] = np.sum(throughput)
+        ratio_seq[step] = np.sum(throughput) / np.sum(sending_rates)
         if step:
             total_bo.append(obs[0][parent_num:2*parent_num])
         total_rewards += np.average(rewards)
@@ -130,9 +133,15 @@ for epoch in tqdm(range(500), desc="Epochs"):
     epoch_rewards.append(total_rewards)
     total_WFI_seq += WFI_seq
     total_throughput_seq += throughput_seq
+    total_ratio_seq += ratio_seq
 
 total_WFI_seq /= 500
 total_throughput_seq /= 500
+total_ratio_seq /= 500
+np.save('RL_WFI.npy', total_WFI_seq)
+np.save('RL_throughput.npy', total_throughput_seq)
+np.save('RL_ratio.npy', total_ratio_seq)
+
 print(f"Total throughput: {total_throughput:.4f}")
 print(f"ratio: {total_throughput/total_sending_rate:.4f}")
 print("average_rewards:", np.average(epoch_rewards))
