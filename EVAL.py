@@ -46,7 +46,7 @@ from config import get_config
 from tqdm import tqdm
 
 # checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run36\models\actor.pt', map_location=torch.device('cuda'))
-checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run77\models\actor.pt', map_location=torch.device('cuda'))
+checkpoint = torch.load(r'results\MyEnv\MyEnv\mappo\check\run35\models\actor.pt', map_location=torch.device('cuda'))
 # laptop段55较好
 if isinstance(checkpoint, dict):
     if 'state_dict' in checkpoint:
@@ -89,11 +89,17 @@ eval_masks = np.ones((n_rollout_threads, num_agents, 1), dtype=np.float32)
 epoch_rewards = []
 total_bo = []
 total_action_dis = np.zeros(11)
+total_throughput = 0
+total_sending_rate = 0
 total_WFI_seq = np.zeros(episode_length)
+total_throughput_seq = np.zeros(episode_length)
+total_ratio_seq = np.zeros(episode_length)
 for epoch in tqdm(range(500), desc="Epochs"):
     obs = env.reset()
     total_rewards = 0
     WFI_seq = np.zeros(episode_length)
+    throughput_seq = np.zeros(episode_length)
+    ratio_seq = np.zeros(episode_length)
     # 以下是一个episode的循环
     for step in range(episode_length):
         actions, _,rnn_states = actor(obs, eval_rnn_states, eval_masks, deterministic=False,)
@@ -109,70 +115,107 @@ for epoch in tqdm(range(500), desc="Epochs"):
 
         # 从 infos 中提取 sending_rate 和 pi
         sending_rates = np.array([info['sending_rates'] for info in infos], dtype=np.float32)  # shape: (agent_num,)
+        total_sending_rate += np.sum(sending_rates)
         pis = np.array([info['priority'] for info in infos], dtype=np.float32)
         throughput = np.array([info['throughput'] for info in infos], dtype=np.float32)
-
+        total_throughput += np.sum(throughput)
         # 计算分子和分母
         numerator = np.sum(throughput * pis) ** 2
         denominator = np.sum((throughput * pis) ** 2) * num_agents
         current_WFI = numerator / denominator
         WFI_seq[step] = current_WFI
+        throughput_seq[step] = np.sum(throughput)
+        ratio_seq[step] = np.sum(throughput) / np.sum(sending_rates)
         if step:
             total_bo.append(obs[0][parent_num:2*parent_num])
         total_rewards += np.average(rewards)
     #print(f"Epoch {epoch + 1}/{50}, Average Reward: {total_rewards:.4f}")
     epoch_rewards.append(total_rewards)
     total_WFI_seq += WFI_seq
+    total_throughput_seq += throughput_seq
+    total_ratio_seq += ratio_seq
 
 total_WFI_seq /= 500
+total_throughput_seq /= 500
+total_ratio_seq /= 500
+np.save('RL_WFI.npy', total_WFI_seq)
+np.save('RL_throughput.npy', total_throughput_seq)
+np.save('RL_ratio.npy', total_ratio_seq)
+
+print(f"Total throughput: {total_throughput:.4f}")
+print(f"ratio: {total_throughput/total_sending_rate:.4f}")
 print("average_rewards:", np.average(epoch_rewards))
 print("total_action_dis:", total_action_dis / total_action_dis.sum())
-# 绘制total_action_dis / total_action_dis.sum()的柱状图
+
+# print(f"Total throughput: {total_throughput:.4f}")
+# print(f"ratio: {total_throughput/total_sending_rate:.4f}")
+# print(f"Final average reward: {np.mean(epoch_rewards):.4f}")
 plt.figure(figsize=(10, 6))
-plt.bar(range(11), total_action_dis / total_action_dis.sum())
-plt.xlabel('Actions')
-plt.ylabel('Percentage (%)')
-plt.title('Distribution of Actions')
-plt.xticks(range(11))
-plt.grid(True, alpha=0.3)
-plt.tight_layout()
-plt.show()
-# 使用KDE绘制平滑的密度分布曲线
-flat_bo = np.array(total_bo).flatten()
-density = gaussian_kde(flat_bo)
-xs = np.linspace(flat_bo.min(), flat_bo.max(), 200)
-plt.figure(figsize=(10, 6))
-plt.plot(xs, density(xs), 'b-', lw=2)
-plt.fill_between(xs, density(xs), alpha=0.2)
-plt.xlabel('Values')
-plt.ylabel('Density')
-plt.title('Smooth Distribution of BO values')
-plt.grid(True, alpha=0.3)
+
+# 绘制折线图
+plt.plot(total_WFI_seq)
+
+# 添加标题和标签
+plt.title('WFI Sequence')
+plt.xlabel('Index')
+plt.ylabel('WFI Value')
+
+# 显示图形
 plt.show()
 
-
-
-# 定义区间
-bins = [(0, 0.4), (0.4, 0.8), (0.8, 1.2), (1.2, 1.6), (1.6, 2.0), (2.0, float('inf'))]
-labels = ['0-0.4', '0.4-0.8', '0.8-1.2', '1.2-1.6', '1.6-2.0', '>2']
-
-# 计算每个区间的数据占比
-total_count = len(flat_bo)
-percentages = []
-
-for start, end in bins:
-    count = np.sum((flat_bo >= start) & (flat_bo < end))
-    percentage = (count / total_count) * 100
-    percentages.append(percentage)
-
-print(percentages)
-# 绘制柱状图
+# 绘制throughput的折线图
 plt.figure(figsize=(10, 6))
-plt.bar(labels, percentages)
-plt.xlabel('BO Value Ranges')
-plt.ylabel('Percentage (%)')
-plt.title('Distribution of BO Values by Range')
-plt.xticks(rotation=45)
-plt.grid(True, alpha=0.3)
-plt.tight_layout()
+plt.plot(total_throughput_seq)
+plt.title('Throughput Sequence')
+plt.xlabel('Index')
+plt.ylabel('Throughput Value')
 plt.show()
+# # 绘制total_action_dis / total_action_dis.sum()的柱状图
+# plt.figure(figsize=(10, 6))
+# plt.bar(range(11), total_action_dis / total_action_dis.sum())
+# plt.xlabel('Actions')
+# plt.ylabel('Percentage (%)')
+# plt.title('Distribution of Actions')
+# plt.xticks(range(11))
+# plt.grid(True, alpha=0.3)
+# plt.tight_layout()
+# plt.show()
+# # 使用KDE绘制平滑的密度分布曲线
+# flat_bo = np.array(total_bo).flatten()
+# density = gaussian_kde(flat_bo)
+# xs = np.linspace(flat_bo.min(), flat_bo.max(), 200)
+# plt.figure(figsize=(10, 6))
+# plt.plot(xs, density(xs), 'b-', lw=2)
+# plt.fill_between(xs, density(xs), alpha=0.2)
+# plt.xlabel('Values')
+# plt.ylabel('Density')
+# plt.title('Smooth Distribution of BO values')
+# plt.grid(True, alpha=0.3)
+# plt.show()
+
+
+
+# # 定义区间
+# bins = [(0, 0.4), (0.4, 0.8), (0.8, 1.2), (1.2, 1.6), (1.6, 2.0), (2.0, float('inf'))]
+# labels = ['0-0.4', '0.4-0.8', '0.8-1.2', '1.2-1.6', '1.6-2.0', '>2']
+
+# # 计算每个区间的数据占比
+# total_count = len(flat_bo)
+# percentages = []
+
+# for start, end in bins:
+#     count = np.sum((flat_bo >= start) & (flat_bo < end))
+#     percentage = (count / total_count) * 100
+#     percentages.append(percentage)
+
+# print(percentages)
+# # 绘制柱状图
+# plt.figure(figsize=(10, 6))
+# plt.bar(labels, percentages)
+# plt.xlabel('BO Value Ranges')
+# plt.ylabel('Percentage (%)')
+# plt.title('Distribution of BO Values by Range')
+# plt.xticks(rotation=45)
+# plt.grid(True, alpha=0.3)
+# plt.tight_layout()
+# plt.show()
