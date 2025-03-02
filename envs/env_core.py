@@ -147,7 +147,7 @@ class EnvCore(object):
         # 获取所有父节点的 BO 值
         bo_obs = self.bo  # 形状为 (parent_num,)
 
-        xi_out_obs = 0.7 * self.xi_out_1 + 0.3 * self.xi_out_base # 形状为 (parent_num,)
+        xi_out_obs = 0.4 * self.xi_out_1 + 0.6 * self.xi_out_2 # 形状为 (parent_num,)
 
         # 获取所有父节点下的智能体的平均优先级
         avg_pi_obs = self.avg_pi  # 形状为 (parent_num,)
