@@ -37,7 +37,7 @@ class EnvCore(object):
         # When self.agent_num is set to 2 agents, the return value is a list, each list contains a shape = (self.obs_dim, ) observation data
         """
         # 初始化 ETX 值（叶节点到父节点的链路质量）
-        self.etx = np.random.uniform(1.00, 1.02, size=(self.agent_num, self.parent_num))
+        self.etx = np.random.uniform(1.04, 1.06, size=(self.agent_num, self.parent_num))
         # 初始化 BO 值（上一个时刻进入父节点的流量），初始化为 0
         self.bo = np.zeros(self.parent_num)
         #初始化每个父亲节点的最大传输速率
@@ -90,7 +90,7 @@ class EnvCore(object):
         # 更新 ETX（可加入动态变化，此处简单模拟随机波动）注意，在这里需要设置偏好
         etx_fluctuation = np.random.normal(0, 0.01, size=(self.agent_num, self.parent_num))
         self.etx += etx_fluctuation
-        self.etx = np.clip(self.etx, 1.00, 1.02)
+        self.etx = np.clip(self.etx, 1.04, 1.06)
 
         # 更新选择新的拓扑下的avg_pi
         self.avg_pi = self.get_avg_pi()
