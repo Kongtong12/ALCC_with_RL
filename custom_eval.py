@@ -268,9 +268,9 @@ if __name__ == "__main__":
     )
     
     # 保存结果
-    np.save('custom_WFI.npy', results['WFI_seq'])
-    np.save('custom_throughput.npy', results['throughput_seq'])
-    np.save('custom_ratio.npy', results['ratio_seq'])
+    # np.save('custom_WFI.npy', results['WFI_seq'])
+    # np.save('custom_throughput.npy', results['throughput_seq'])
+    # np.save('custom_ratio.npy', results['ratio_seq'])
     
     # 可视化结果
     plt.figure(figsize=(12, 8))
