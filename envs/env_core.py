@@ -21,7 +21,7 @@ class EnvCore(object):
         self.w5 = 12.8
         self.w3 = .9 * self.w5
         self.w4 = 1. * self.w5
-        self.xi_max = np.full(self.agent_num,9) # 这里设置了每个节点的最大传输速率
+        self.xi_max = np.full(self.agent_num, 9) # 这里设置了每个节点的最大传输速率
 
         # 初始化奖励参数，使用kwargs传递
         self.alpha = kwargs.get('alpha', -1.0)
@@ -421,7 +421,7 @@ class EnvCore(object):
         for i in range(m):
             gray_grades[i] = np.sum(weights * gray_coefficients[i, :])
 
-        gray_grades += 0.6 * current_parent  # Add a small bonus for the current parent
+        gray_grades += 0.4 * current_parent  # Add a small bonus for the current parent
 
         # --- 5. Parent Selection (Find parent with highest Gray Relational Grade) ---
         selected_parent_index = np.argmax(gray_grades)  # Index of the best parent
