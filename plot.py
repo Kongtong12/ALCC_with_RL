@@ -23,7 +23,7 @@ for algo in algorithms:
             print(f"警告：文件 {filename} 未找到，跳过该文件。")
 
 # 创建新的时间尺度：0到1000之间均匀分布的20个点
-new_time_scale = np.linspace(0, 1000, 20)
+new_time_scale = np.linspace(0, 1000, 21)
 
 # 为每个指标绘制一张图
 for metric in metrics:
@@ -41,7 +41,7 @@ for metric in metrics:
                 # 重采样到20个点
                 # 使用线性插值获取新时间尺度下的数据点
                 resampled_data = np.interp(
-                    np.linspace(0, 199, 20),  # 在原始索引范围内均匀选择20个点
+                    np.linspace(0, 199, 21),  # 在原始索引范围内均匀选择20个点
                     original_indices,
                     original_data
                 )
@@ -52,7 +52,7 @@ for metric in metrics:
                 # 如果原始数据点数不是200，则进行通用重采样
                 original_indices = np.linspace(0, len(original_data)-1, len(original_data))
                 resampled_data = np.interp(
-                    np.linspace(0, len(original_data)-1, 20),
+                    np.linspace(0, len(original_data)-1, 21),
                     original_indices,
                     original_data
                 )
