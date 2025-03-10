@@ -78,9 +78,9 @@ for epoch in tqdm(range(num_epochs), desc="Epochs"):
 total_WFI_seq /= 500
 total_throughput_seq /= 500
 total_ratio_seq /= 500
-np.save('OHCA_WFI.npy', total_WFI_seq)
-np.save('OHCA_throughput.npy', total_throughput_seq)
-np.save('OHCA_ratio.npy', total_ratio_seq)
+np.save('OHCA_WFI1.npy', total_WFI_seq)
+np.save('OHCA_throughput1.npy', total_throughput_seq)
+np.save('OHCA_ratio1.npy', total_ratio_seq)
 
 # 输出总体训练结果
 #print(f"\nTraining completed!")

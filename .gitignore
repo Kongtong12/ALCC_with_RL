@@ -7,3 +7,6 @@ OHCA_ratio.npy
 RL_ratio.npy
 RL_throughput.npy
 RL_WFI.npy
+OHCA_ratio1.npy
+OHCA_throughput1.npy
+OHCA_WFI1.npy
