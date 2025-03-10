@@ -59,7 +59,7 @@ class EnvCore(object):
         self.pi = np.random.randint(1, 4, size=self.agent_num)
         self.pi = self.pi.astype(np.float32)
 
-        self.avg_pi = np.zeros(self.parent_num)
+        self.avg_pi = 2 * np.ones(self.parent_num)
 
         # 返回初始观测
         return self._get_obs()
@@ -312,8 +312,7 @@ class EnvCore(object):
             parent_counts[parent_idx] += 1
             parent_priorities[parent_idx] += self.pi[i]
 
-        # Avoid division by zero
-        parent_counts = np.where(parent_counts == 0, 1, parent_counts)
-        avg_pi = parent_priorities / parent_counts
+        
+        avg_pi = np.where(parent_counts == 0, 2, parent_priorities / parent_counts)
         
         return avg_pi
