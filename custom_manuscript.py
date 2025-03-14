@@ -291,9 +291,9 @@ if __name__ == "__main__":
     avg_reward = total_reward / num_epochs
     
     # 保存结果
-    np.save('OHCA_WFI.npy', avg_WFI_seq)
-    np.save('OHCA_throughput.npy', avg_throughput_seq)
-    np.save('OHCA_ratio.npy', avg_ratio_seq)
+    np.save('OHCA_WFI2.npy', avg_WFI_seq)
+    np.save('OHCA_throughput2.npy', avg_throughput_seq)
+    np.save('OHCA_ratio.npy2', avg_ratio_seq)
     
     # 输出总体训练结果
     print("\n" + "="*50)

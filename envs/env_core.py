@@ -21,7 +21,7 @@ class EnvCore(object):
         self.w5 = 12.8
         self.w3 = .9 * self.w5
         self.w4 = 1. * self.w5
-        self.xi_max = np.full(self.agent_num, 9) # 这里设置了每个节点的最大传输速率
+        self.xi_max = np.full(self.agent_num, 7.) # 这里设置了每个节点的最大传输速率
 
         # 初始化奖励参数，使用kwargs传递
         self.alpha = kwargs.get('alpha', -1.0)
