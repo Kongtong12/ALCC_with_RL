@@ -58,6 +58,7 @@ for epoch in tqdm(range(num_epochs), desc="Epochs"):
         numerator = np.sum(throughput * pis) ** 2
         denominator = np.sum((throughput * pis) ** 2) * num_agents
         current_WFI = numerator / denominator
+        print(f"当前步的WFI: {current_WFI}")
         WFI_seq[step] = current_WFI
         throughput_seq[step] = np.sum(throughput)
         ratio_seq[step] = np.sum(throughput) / np.sum(sending_rates)

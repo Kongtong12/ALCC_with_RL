@@ -190,7 +190,7 @@ if __name__ == "__main__":
     print("="*50 + "\n")
     
     # 定义自定义优先级 (4个节点优先级为1，6个节点优先级为3)
-    custom_priorities = np.array([1, 1, 1, 1, 2, 2, 3, 3, 3, 3])
+    custom_priorities = np.array([1, 1, 1, 1, 1, 1, 2, 2, 3, 3])
     
     # 定义初始父节点连接 (每个值代表对应智能体初始连接的父节点，取值应为0、1或2)
     initial_parents = np.array([0, 0, 1, 1, 2, 2, 0, 1, 2, 0])
@@ -206,11 +206,11 @@ if __name__ == "__main__":
     # plt.figure(figsize=(12, 8))
     
     # plt.subplot(2, 2, 1)
-    # plt.plot(results['WFI_seq'])
-    # plt.title('Weighted Fairness Index (WFI)')
-    # plt.xlabel('Steps')
-    # plt.ylabel('WFI')
-    
+    plt.plot(results['WFI_seq'])
+    plt.title('Weighted Fairness Index (WFI)')
+    plt.xlabel('Steps')
+    plt.ylabel('WFI')
+    plt.show()
     # plt.subplot(2, 2, 2)
     # plt.plot(results['throughput_seq'])
     # plt.title('Total Throughput')
