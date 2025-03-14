@@ -94,9 +94,9 @@ total_throughput_seq /= num_epochs
 total_ratio_seq /= num_epochs
 
 # 保存数据
-np.save('NGECC_WFI.npy', total_WFI_seq)
-np.save('NGECC_throughput.npy', total_throughput_seq)
-np.save('NGECC_ratio.npy', total_ratio_seq)
+np.save('NGECC_WFI1.npy', total_WFI_seq)
+np.save('NGECC_throughput1.npy', total_throughput_seq)
+np.save('NGECC_ratio1.npy', total_ratio_seq)
 
 # 输出总体训练结果
 print(f"Total throughput: {total_throughput:.4f}")

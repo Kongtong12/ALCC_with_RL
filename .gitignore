@@ -10,3 +10,6 @@ OHCA_throughput.npy
 OHCA_ratio.npy
 NGECC_WFI.npy
 NGECC_throughput.npy
+NGECC_ratio1.npy
+NGECC_throughput1.npy
+NGECC_WFI1.npy
