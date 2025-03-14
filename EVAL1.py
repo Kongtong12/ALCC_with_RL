@@ -82,6 +82,13 @@ actor.load_state_dict(state_dict)
 priority_sending_rates = defaultdict(list)
 priority_counts = defaultdict(int)
 
+# 用于跟踪优先级变化的统计信息
+priority_change_stats = {
+    "1->2": 0, "1->3": 0, 
+    "2->1": 0, "2->3": 0,
+    "3->1": 0, "3->2": 0
+}
+
 eval_episode_rewards = []
 rnn_states = np.zeros((episode_length + 1, n_rollout_threads, num_agents, recurrent_N, hidden_size),dtype=np.float32).shape[2:]
 eval_rnn_states = np.zeros((1, *rnn_states),dtype=np.float32)
@@ -103,6 +110,38 @@ for epoch in tqdm(range(500), desc="Epochs"):
     ratio_seq = np.zeros(episode_length)
     # 以下是一个episode的循环
     for step in range(episode_length):
+        # 从20步开始，每隔20步随机选择两个节点更换优先级
+        if step >= 20 and step % 20 == 0:
+            # 随机选择两个节点
+            nodes_to_change = np.random.choice(num_agents, 1, replace=False)
+            
+            # # 记录变更前的优先级
+            # print(f"\n步骤 {step}: 变更优先级")
+            # print(f"变更前的优先级: {pis}")
+            
+            # 对每个选中的节点，更换为其他两个优先级之一
+            for node in nodes_to_change:
+                current_priority = pis[node]
+                # 可能的优先级是1、2、3，获取当前优先级以外的两个值
+                possible_priorities = [p for p in [1, 2, 3] if p != current_priority]
+                # 从剩余两个优先级中随机选择一个
+                new_priority = np.random.choice(possible_priorities)
+                # 更新节点优先级
+                pis[node] = new_priority
+                # 记录优先级变化统计
+                change_key = f"{current_priority:.0f}->{new_priority:.0f}"
+                if change_key in priority_change_stats:
+                    priority_change_stats[change_key] += 1
+                # print(f"节点 {node}: {current_priority} -> {new_priority}")
+            
+            # 更新环境中的优先级
+            env.pi = pis.astype(np.float32)
+            # 更新平均优先级
+            env.avg_pi = env.get_avg_pi()
+            
+            # 记录变更后的优先级
+            # print(f"变更后的优先级: {pis}\n")
+        
         actions, _,rnn_states = actor(obs, eval_rnn_states, eval_masks, deterministic=False,)
         actions = _t2n(actions)
         # 将actions转换为one_hot编码,对one_hot编码纵向相加，得到一个三维numpy数组，以这三个量的大小作为index加到total_action_dis中
@@ -153,6 +192,12 @@ print(f"Total throughput: {total_throughput:.4f}")
 print(f"ratio: {total_throughput/total_sending_rate:.4f}")
 print("average_rewards:", np.average(epoch_rewards))
 print("total_action_dis:", total_action_dis / total_action_dis.sum())
+
+# 显示优先级变化统计
+print("\n优先级变化统计:")
+for change, count in priority_change_stats.items():
+    print(f"{change}: {count}次")
+print("\n")
 
 # 计算并显示每个优先级的平均发送速率
 print("\nAverage Sending Rates by Priority Level:")

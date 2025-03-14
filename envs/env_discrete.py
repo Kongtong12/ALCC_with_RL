@@ -17,8 +17,8 @@ class DiscreteActionEnv(object):
     Wrapper for discrete action environment.
     """
 
-    def __init__(self, **kwargs):
-        self.env = EnvCore(**kwargs)
+    def __init__(self, agent_num=10, alpha=-1.0, beta=1.0, gamma=0.2, W1=0.4, W2=0.6):
+        self.env = EnvCore(agent_num=agent_num, alpha=alpha, beta=beta, gamma=gamma, W1=W1, W2=W2)
         self.num_agent = self.env.agent_num
         #下面的定义为WSN独有
         self.parent_num = self.env.parent_num
@@ -62,6 +62,13 @@ class DiscreteActionEnv(object):
             spaces.Box(low=-np.inf, high=+np.inf, shape=(share_obs_dim,), dtype=np.float32)
             for _ in range(self.num_agent)
         ]
+
+        self.pi = np.ones(agent_num)  # 初始化优先级为1
+        self.avg_pi = 1.0  # 初始化平均优先级为1
+
+    def get_avg_pi(self):
+        """计算所有节点的平均优先级"""
+        return np.mean(self.pi)
 
     def step(self, actions):
         """
