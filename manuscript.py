@@ -34,6 +34,13 @@ total_throughput = 0
 # 初始化数据结构来存储每个优先级的发送速率
 priority_rates = defaultdict(list)  # 用于存储每个优先级的所有发送速率
 
+# 用于跟踪优先级变化的统计信息
+priority_change_stats = {
+    "1->2": 0, "1->3": 0, 
+    "2->1": 0, "2->3": 0,
+    "3->1": 0, "3->2": 0
+}
+
 for epoch in tqdm(range(num_epochs), desc="Epochs"):
     # 重置环境
     state = env.reset()
@@ -45,6 +52,28 @@ for epoch in tqdm(range(num_epochs), desc="Epochs"):
     
     # 执行时间步
     for step in range(steps_per_epoch):
+        # 从第20步开始，每隔20步随机选择两个节点更换优先级
+        if step >= 20 and step % 20 == 0:
+            # 随机选择两个节点
+            nodes_to_change = np.random.choice(num_agents, 2, replace=False)
+            
+            for node in nodes_to_change:
+                current_priority = env.pi[node]
+                # 可能的优先级是1、2、3，获取当前优先级以外的两个值
+                possible_priorities = [p for p in [1, 2, 3] if p != current_priority]
+                # 从剩余两个优先级中随机选择一个
+                new_priority = np.random.choice(possible_priorities)
+                # 更新节点优先级
+                env.pi[node] = new_priority
+                
+                # 更新优先级变化统计
+                change_key = f"{current_priority:.0f}->{new_priority:.0f}"
+                if change_key in priority_change_stats:
+                    priority_change_stats[change_key] += 1
+            
+            # 更新环境中的平均优先级
+            env.avg_pi = np.mean(env.pi)
+            
         # 选择动作
         actions = env.take_action()
         # 将actions转换为one_hot编码,对one_hot编码纵向相加，得到一个三维numpy数组，以这三个量的大小作为index加到total_action_dis中  
@@ -102,6 +131,12 @@ np.save('NGECC_ratio1.npy', total_ratio_seq)
 print(f"Total throughput: {total_throughput:.4f}")
 print(f"deliver ratio: {total_throughput/total_sending_rate:.4f}")
 print(f"Final average reward: {np.mean(epoch_rewards):.4f}")
+
+# 显示优先级变化统计
+print("\n优先级变化统计:")
+for change, count in priority_change_stats.items():
+    print(f"{change}: {count}次")
+print("\n")
 
 # 计算并显示每个优先级的统计信息
 print("\nPriority Level Statistics:")
