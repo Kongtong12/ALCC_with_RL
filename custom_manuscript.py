@@ -2,6 +2,7 @@ import numpy as np
 from envs import env_core
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from collections import defaultdict
 
 def get_env_params(agent_num = 10, alpha=-1.0, beta=1.0, gamma=0.2, W1=0.4, W2=0.6):
     params = {
@@ -56,6 +57,9 @@ def custom_simulation(
     throughput_history = []
     priority_history = []
     
+    # 初始化优先级分类的数据结构
+    priority_rates = defaultdict(list)  # 用于存储每个优先级的所有发送速率
+    
     # 重置环境
     state = env.reset()
     
@@ -94,40 +98,6 @@ def custom_simulation(
         # 执行动作
         next_state, reward, done, infos = env.step(actions)
         
-        # 在第100步查看每个父节点包含的leaf node及其优先级
-        if step == 99:  # 因为步数从0开始，所以第100步是索引99
-            print("\n" + "="*60)
-            print("第100步 - 每个父节点包含的叶节点及其优先级:")
-            print("="*60)
-            
-            # 获取当前的父节点选择（current_parent是one-hot编码）
-            current_parent_indices = np.argmax(env.current_parent, axis=1)
-            
-            # 为每个父节点创建包含的叶节点列表
-            parent_to_leaves = {i: [] for i in range(parent_num)}
-            
-            # 收集每个父节点包含的叶节点及其优先级
-            for leaf_idx in range(agent_num):
-                parent_idx = current_parent_indices[leaf_idx]
-                leaf_priority = env.pi[leaf_idx]
-                parent_to_leaves[parent_idx].append((leaf_idx, leaf_priority))
-            
-            # 打印每个父节点的信息
-            for parent_idx, leaves in parent_to_leaves.items():
-                print(f"\n父节点 {parent_idx}:")
-                if not leaves:
-                    print("  没有连接的叶节点")
-                else:
-                    total_priority = sum(priority for _, priority in leaves)
-                    print(f"  连接的叶节点数量: {len(leaves)}")
-                    print(f"  总优先级: {total_priority:.2f}")
-                    print(f"  平均优先级: {total_priority/len(leaves) if leaves else 0:.2f}")
-                    print("  叶节点列表 (节点ID, 优先级):")
-                    for leaf_idx, priority in leaves:
-                        print(f"    叶节点 {leaf_idx}: 优先级 {priority:.2f}")
-            
-            print("\n" + "="*60)
-        
         # 提取指标
         sending_rates = np.array([info['sending_rates'] for info in infos], dtype=np.float32)
         total_sending_rate += np.sum(sending_rates)
@@ -135,6 +105,11 @@ def custom_simulation(
         priorities = np.array([info['priority'] for info in infos], dtype=np.float32)
         throughput = np.array([info['throughput'] for info in infos], dtype=np.float32)
         total_throughput += np.sum(throughput)
+        
+        # 收集每个优先级的发送速率数据
+        for i in range(num_agents):
+            priority = priorities[i]
+            priority_rates[priority].append(sending_rates[i])
         
         # 保存历史
         sending_rates_history.append(sending_rates)
@@ -168,13 +143,28 @@ def custom_simulation(
         'bo_values': total_bo,
         'sending_rates_history': np.array(sending_rates_history),
         'throughput_history': np.array(throughput_history),
-        'priority_history': np.array(priority_history)
+        'priority_history': np.array(priority_history),
+        'priority_rates': priority_rates  # 添加优先级分类数据
     }
     
     print("\n仿真完成!")
     print(f"平均奖励: {total_reward/simulation_steps:.4f}")
     print(f"总吞吐量: {total_throughput:.4f}")
     print(f"吞吐量/发送速率比率: {total_throughput/total_sending_rate if total_sending_rate > 0 else 0:.4f}")
+    
+    # 打印每个优先级的统计信息
+    print("\n各优先级节点的发送速率统计:")
+    print("-" * 60)
+    print("优先级 | 平均发送速率 | 样本数量 | 最小速率 | 最大速率")
+    print("-" * 60)
+    
+    for priority in sorted(priority_rates.keys()):
+        rates = np.array(priority_rates[priority])
+        avg_rate = np.mean(rates)
+        count = len(rates)
+        min_rate = np.min(rates)
+        max_rate = np.max(rates)
+        print(f"{priority:6.2f} | {avg_rate:12.4f} | {count:8d} | {min_rate:8.4f} | {max_rate:8.4f}")
     
     return results
 
@@ -184,7 +174,7 @@ if __name__ == "__main__":
     print("="*50 + "\n")
     
     # 定义自定义优先级 (4个节点优先级为1，6个节点优先级为3)
-    custom_priorities = np.array([1, 1, 1, 1, 3, 3, 3, 3, 3, 3])
+    custom_priorities = np.array([1, 1, 1, 1, 2, 2, 3, 3, 3, 3])
     
     # 定义初始父节点连接 (每个值代表对应智能体初始连接的父节点，取值应为0、1或2)
     initial_parents = np.array([0, 0, 1, 1, 2, 2, 0, 1, 2, 0])
@@ -196,37 +186,52 @@ if __name__ == "__main__":
         simulation_steps=200
     )
     
-    # 保存结果
-    # np.save('NGECC_custom_WFI.npy', results['WFI_seq'])
-    # np.save('NGECC_custom_throughput.npy', results['throughput_seq'])
-    # np.save('NGECC_custom_ratio.npy', results['ratio_seq'])
-    
     # 可视化结果
-    plt.figure(figsize=(12, 8))
+    plt.figure(figsize=(15, 10))
     
-    plt.subplot(2, 2, 1)
+    # 原有的四个图
+    plt.subplot(2, 3, 1)
     plt.plot(results['WFI_seq'])
     plt.title('Weighted Fairness Index (WFI)')
     plt.xlabel('Steps')
     plt.ylabel('WFI')
     
-    plt.subplot(2, 2, 2)
+    plt.subplot(2, 3, 2)
     plt.plot(results['throughput_seq'])
     plt.title('Total Throughput')
     plt.xlabel('Steps')
     plt.ylabel('Throughput')
     
-    plt.subplot(2, 2, 3)
+    plt.subplot(2, 3, 3)
     plt.plot(results['ratio_seq'])
     plt.title('Throughput/Sending Rate Ratio')
     plt.xlabel('Steps')
     plt.ylabel('Ratio')
     
-    plt.subplot(2, 2, 4)
+    plt.subplot(2, 3, 4)
     parent_labels = ['Parent 0', 'Parent 1', 'Parent 2']
     plt.bar(parent_labels, results['action_distribution'][:3])
     plt.title('Action Distribution')
     plt.ylabel('Frequency')
+    
+    # 添加优先级发送速率的统计图
+    plt.subplot(2, 3, 5)
+    priorities = sorted(results['priority_rates'].keys())
+    avg_rates = [np.mean(results['priority_rates'][p]) for p in priorities]
+    plt.bar([f"Priority {p:.1f}" for p in priorities], avg_rates)
+    plt.title('Average Sending Rates by Priority')
+    plt.xlabel('Priority Level')
+    plt.ylabel('Average Sending Rate')
+    plt.xticks(rotation=45)
+    
+    # 添加优先级发送速率的箱型图
+    plt.subplot(2, 3, 6)
+    box_data = [results['priority_rates'][p] for p in priorities]
+    plt.boxplot(box_data, labels=[f"Priority {p:.1f}" for p in priorities])
+    plt.title('Sending Rate Distribution by Priority')
+    plt.xlabel('Priority Level')
+    plt.ylabel('Sending Rate')
+    plt.xticks(rotation=45)
     
     plt.tight_layout()
     plt.savefig('NGECC_custom_results.png')
