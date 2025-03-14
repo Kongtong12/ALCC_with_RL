@@ -88,7 +88,7 @@ def custom_simulation(
             actions = initial_actions
         else:
             # 后续步骤使用take_action算法选择动作
-            actions = env.take_action()
+            actions = env.OHCA_take_action()
         
         # 记录动作分布
         sum_one_hot = actions.sum(axis=0)
@@ -202,33 +202,33 @@ if __name__ == "__main__":
         simulation_steps=200
     )
     
-    # 可视化结果
-    plt.figure(figsize=(12, 8))
+    # # 可视化结果
+    # plt.figure(figsize=(12, 8))
     
-    plt.subplot(2, 2, 1)
-    plt.plot(results['WFI_seq'])
-    plt.title('Weighted Fairness Index (WFI)')
-    plt.xlabel('Steps')
-    plt.ylabel('WFI')
+    # plt.subplot(2, 2, 1)
+    # plt.plot(results['WFI_seq'])
+    # plt.title('Weighted Fairness Index (WFI)')
+    # plt.xlabel('Steps')
+    # plt.ylabel('WFI')
     
-    plt.subplot(2, 2, 2)
-    plt.plot(results['throughput_seq'])
-    plt.title('Total Throughput')
-    plt.xlabel('Steps')
-    plt.ylabel('Throughput')
+    # plt.subplot(2, 2, 2)
+    # plt.plot(results['throughput_seq'])
+    # plt.title('Total Throughput')
+    # plt.xlabel('Steps')
+    # plt.ylabel('Throughput')
     
-    plt.subplot(2, 2, 3)
-    plt.plot(results['ratio_seq'])
-    plt.title('Throughput/Sending Rate Ratio')
-    plt.xlabel('Steps')
-    plt.ylabel('Ratio')
+    # plt.subplot(2, 2, 3)
+    # plt.plot(results['ratio_seq'])
+    # plt.title('Throughput/Sending Rate Ratio')
+    # plt.xlabel('Steps')
+    # plt.ylabel('Ratio')
     
-    plt.subplot(2, 2, 4)
-    parent_labels = ['Parent 0', 'Parent 1', 'Parent 2']
-    plt.bar(parent_labels, results['action_distribution'][:3])
-    plt.title('Action Distribution')
-    plt.ylabel('Frequency')
+    # plt.subplot(2, 2, 4)
+    # parent_labels = ['Parent 0', 'Parent 1', 'Parent 2']
+    # plt.bar(parent_labels, results['action_distribution'][:3])
+    # plt.title('Action Distribution')
+    # plt.ylabel('Frequency')
     
-    plt.tight_layout()
-    plt.savefig('NGECC_custom_results.png')
-    plt.show() 
+    # plt.tight_layout()
+    # plt.savefig('NGECC_custom_results.png')
+    # plt.show() 
