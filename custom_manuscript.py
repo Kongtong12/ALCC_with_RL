@@ -2,6 +2,7 @@ import numpy as np
 from envs import env_core
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from scipy.signal import savgol_filter  # 导入Savitzky-Golay滤波器
 
 def get_env_params(agent_num = 10, alpha=-1.0, beta=1.0, gamma=0.2, W1=0.4, W2=0.6):
     params = {
@@ -83,6 +84,37 @@ def custom_simulation(
     # 执行仿真步骤
     # print(f"开始进行 {simulation_steps} 步的仿真...")
     for step in range(simulation_steps):
+        # 从20步开始，每隔20步随机选择两个节点更换优先级
+        if step >= 20 and step % 20 == 0:
+            # 随机选择两个节点
+            nodes_to_change = np.random.choice(agent_num, 1, replace=False)
+            
+            # 记录变更前的优先级
+            # print(f"\n步骤 {step}: 变更优先级")
+            # print(f"变更前的优先级: {custom_priorities}")
+            
+            # 对每个选中的节点，更换为其他两个优先级之一
+            for node in nodes_to_change:
+                current_priority = custom_priorities[node]
+                # 可能的优先级是1、2、3，获取当前优先级以外的两个值
+                possible_priorities = [p for p in [1, 2, 3] if p != current_priority]
+                # 从剩余两个优先级中随机选择一个
+                new_priority = np.random.choice(possible_priorities)
+                # 更新节点优先级
+                custom_priorities[node] = new_priority
+                # print(f"节点 {node}: {current_priority} -> {new_priority}")
+            
+            # 更新环境中的优先级
+            env.pi = custom_priorities.astype(np.float32)
+            # 更新平均优先级
+            env.avg_pi = env.get_avg_pi()
+            
+            # 记录变更后的优先级
+            # print(f"变更后的优先级: {custom_priorities}\n")
+            
+            # 记录变更信息
+            priority_history.append(custom_priorities.copy())
+        
         # 第一步使用初始父节点选择
         if step == 0:
             actions = initial_actions
@@ -113,7 +145,9 @@ def custom_simulation(
         # 保存历史
         sending_rates_history.append(sending_rates)
         throughput_history.append(throughput)
-        priority_history.append(custom_priorities)
+        # 优先级历史移动到循环开始处更新，这里不再重复添加
+        if step == 0 or step < 20 or step % 20 != 0:
+            priority_history.append(custom_priorities.copy())
         
         # 计算WFI
         numerator = np.sum(throughput * custom_priorities) ** 2
@@ -203,10 +237,20 @@ if __name__ == "__main__":
     total_ratio_seq = np.zeros(simulation_steps)
     total_reward = 0
     
+    # 用于跟踪优先级变化的统计信息
+    priority_change_stats = {
+        "1->2": 0, "1->3": 0, 
+        "2->1": 0, "2->3": 0,
+        "3->1": 0, "3->2": 0
+    }
+    
     # 运行500个epoch的仿真
     for epoch in tqdm(range(num_epochs), desc="Epochs"):
         # 每个epoch随机生成1-3之间的优先级向量
         random_priorities = np.random.randint(1, 4, size=agent_num).astype(np.float32)
+        
+        # 是否收集当前epoch的优先级变化信息
+        record_priority_changes = (epoch == 0)  # 只为第一个epoch记录详细变化
         
         # 运行单次仿真
         results = custom_simulation(
@@ -214,6 +258,25 @@ if __name__ == "__main__":
             initial_parents=initial_parents,
             simulation_steps=simulation_steps
         )
+        
+        # 从results中提取优先级变化信息 (仅在少数epoch中记录详细信息)
+        if record_priority_changes and 'priority_history' in results:
+            priority_history = results.get('priority_history', [])
+            
+            # 遍历所有优先级变化点
+            for step in range(20, simulation_steps, 20):
+                history_idx = step // 20  # 计算在history中的索引位置
+                if history_idx < len(priority_history):
+                    if step-1 < len(priority_history) and step < len(priority_history):
+                        before_priorities = priority_history[step-1]
+                        after_priorities = priority_history[step]
+                        
+                        # 查找变化的节点
+                        for i in range(len(before_priorities)):
+                            if before_priorities[i] != after_priorities[i]:
+                                change_key = f"{before_priorities[i]:.0f}->{after_priorities[i]:.0f}"
+                                if change_key in priority_change_stats:
+                                    priority_change_stats[change_key] += 1
         
         # 累加结果
         total_WFI_seq += results['WFI_seq']
@@ -241,20 +304,45 @@ if __name__ == "__main__":
     print(f"平均吞吐率: {np.mean(avg_ratio_seq):.4f}")
     print("="*50 + "\n")
     
+    # 显示优先级变化统计
+    # print("优先级变化统计:")
+    # for change, count in priority_change_stats.items():
+    #     print(f"{change}: {count}次")
+    # print("\n")
+    
     # 可视化结果
     plt.figure(figsize=(12, 8))
     
+    # 绘制原始WFI曲线
     plt.subplot(2, 2, 1)
-    plt.plot(avg_WFI_seq)
+    plt.plot(avg_WFI_seq, 'b-', alpha=0.5, label='原始数据')
+    
+    # 使用Savitzky-Golay滤波器进行平滑处理
+    window_length = 21  # 窗口长度必须是奇数
+    polyorder = 3      # 多项式阶数
+    smoothed_WFI = savgol_filter(avg_WFI_seq, window_length, polyorder)
+    
+    # 绘制平滑后的WFI曲线，savgol_filter保持数据长度一致
+    plt.plot(smoothed_WFI, 'r-', linewidth=2, label='平滑数据')
     plt.title('Average Weighted Fairness Index (WFI)')
     plt.xlabel('Steps')
     plt.ylabel('WFI')
+    plt.legend()
     
+    # 在图上标记优先级变化的位置
+    for step in range(20, simulation_steps, 20):
+        plt.axvline(x=step, color='g', linestyle='--', alpha=0.3)
+        
+    # 绘制其他曲线
     plt.subplot(2, 2, 2)
     plt.plot(avg_throughput_seq)
     plt.title('Average Total Throughput')
     plt.xlabel('Steps')
     plt.ylabel('Throughput')
+    
+    # 标记优先级变化的位置
+    for step in range(20, simulation_steps, 20):
+        plt.axvline(x=step, color='g', linestyle='--', alpha=0.3)
     
     plt.subplot(2, 2, 3)
     plt.plot(avg_ratio_seq)
@@ -262,6 +350,27 @@ if __name__ == "__main__":
     plt.xlabel('Steps')
     plt.ylabel('Ratio')
     
-    plt.tight_layout()
-    plt.savefig('OHCA_avg_results.png')
-    plt.show() 
+    # 标记优先级变化的位置
+    for step in range(20, simulation_steps, 20):
+        plt.axvline(x=step, color='g', linestyle='--', alpha=0.3)
+    
+    # # 单独创建一个图显示平滑后的WFI
+    # plt.figure(figsize=(10, 6))
+    # plt.plot(avg_WFI_seq, 'b-', alpha=0.5, label='原始WFI')
+    # plt.plot(smoothed_WFI, 'r-', linewidth=2, label='平滑WFI')
+    
+    # # 标记优先级变化的位置
+    # for step in range(20, simulation_steps, 20):
+    #     plt.axvline(x=step, color='g', linestyle='--', alpha=0.3, label='优先级变更点' if step == 20 else "")
+    
+    # plt.title('WFI Sequence (Smoothed)')
+    # plt.xlabel('Index')
+    # plt.ylabel('WFI Value')
+    # plt.legend()
+    # plt.tight_layout()
+    # plt.savefig('OHCA_WFI_smoothed.png')
+    # plt.show()
+    
+    # plt.tight_layout()
+    # plt.savefig('OHCA_avg_results.png')
+    # plt.show() 
