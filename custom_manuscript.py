@@ -45,6 +45,10 @@ def custom_simulation(
     num_agents = params['agent_num']
     parent_num = env.parent_num
     
+    # 初始化每个节点的数据收集
+    node_sending_rates = [[] for _ in range(num_agents)]
+    node_throughput = [[] for _ in range(num_agents)]
+    
     # 初始化指标
     total_bo = []
     action_distribution = np.zeros(11)
@@ -53,12 +57,6 @@ def custom_simulation(
     WFI_seq = np.zeros(simulation_steps)
     throughput_seq = np.zeros(simulation_steps)
     ratio_seq = np.zeros(simulation_steps)
-    sending_rates_history = []
-    throughput_history = []
-    priority_history = []
-    
-    # 初始化优先级分类的数据结构
-    priority_rates = defaultdict(list)  # 用于存储每个优先级的所有发送速率
     
     # 重置环境
     state = env.reset()
@@ -87,7 +85,6 @@ def custom_simulation(
         if step == 0:
             actions = initial_actions
         else:
-            # 后续步骤使用take_action算法选择动作
             actions = env.take_action()
         
         # 记录动作分布
@@ -98,27 +95,21 @@ def custom_simulation(
         # 执行动作
         next_state, reward, done, infos = env.step(actions)
         
-        # 提取指标
+        # 提取和记录每个节点的数据
         sending_rates = np.array([info['sending_rates'] for info in infos], dtype=np.float32)
-        total_sending_rate += np.sum(sending_rates)
-        
-        priorities = np.array([info['priority'] for info in infos], dtype=np.float32)
         throughput = np.array([info['throughput'] for info in infos], dtype=np.float32)
+        
+        # 记录每个节点的数据
+        for i in range(num_agents):
+            node_sending_rates[i].append(sending_rates[i])
+            node_throughput[i].append(throughput[i])
+        
+        total_sending_rate += np.sum(sending_rates)
         total_throughput += np.sum(throughput)
         
-        # 收集每个优先级的发送速率数据
-        for i in range(num_agents):
-            priority = priorities[i]
-            priority_rates[priority].append(sending_rates[i])
-        
-        # 保存历史
-        sending_rates_history.append(sending_rates)
-        throughput_history.append(throughput)
-        priority_history.append(priorities)
-        
         # 计算WFI
-        numerator = np.sum(throughput * priorities) ** 2
-        denominator = np.sum((throughput * priorities) ** 2) * num_agents
+        numerator = np.sum(throughput * custom_priorities) ** 2
+        denominator = np.sum((throughput * custom_priorities) ** 2) * num_agents
         current_WFI = numerator / denominator if denominator > 0 else 0
         
         # 更新指标
@@ -130,41 +121,43 @@ def custom_simulation(
             total_reward += np.average(reward)
             total_bo.append(next_state[0][3:6])
         
-        # 更新状态
         state = next_state
     
-    # 准备结果
-    results = {
-        'total_reward': total_reward,
-        'WFI_seq': WFI_seq,
-        'throughput_seq': throughput_seq,
-        'ratio_seq': ratio_seq,
-        'action_distribution': action_distribution / np.sum(action_distribution) if np.sum(action_distribution) > 0 else action_distribution,
-        'bo_values': total_bo,
-        'sending_rates_history': np.array(sending_rates_history),
-        'throughput_history': np.array(throughput_history),
-        'priority_history': np.array(priority_history),
-        'priority_rates': priority_rates  # 添加优先级分类数据
-    }
-    
+    # 打印总体性能指标
     print("\n仿真完成!")
     print(f"平均奖励: {total_reward/simulation_steps:.4f}")
     print(f"总吞吐量: {total_throughput:.4f}")
     print(f"吞吐量/发送速率比率: {total_throughput/total_sending_rate if total_sending_rate > 0 else 0:.4f}")
     
-    # 打印每个优先级的统计信息
-    print("\n各优先级节点的发送速率统计:")
-    print("-" * 60)
-    print("优先级 | 平均发送速率 | 样本数量 | 最小速率 | 最大速率")
-    print("-" * 60)
+    # 打印每个节点的详细统计信息
+    print("\n各节点的性能统计:")
+    print("=" * 100)
+    print("节点ID | 优先级 | 平均发送速率 | 平均吞吐量 | 发送速率标准差 | 吞吐量标准差 | 传输效率 | 父节点")
+    print("=" * 100)
     
-    for priority in sorted(priority_rates.keys()):
-        rates = np.array(priority_rates[priority])
-        avg_rate = np.mean(rates)
-        count = len(rates)
-        min_rate = np.min(rates)
-        max_rate = np.max(rates)
-        print(f"{priority:6.2f} | {avg_rate:12.4f} | {count:8d} | {min_rate:8.4f} | {max_rate:8.4f}")
+    # 获取最终的父节点分配
+    final_parents = np.argmax(env.current_parent, axis=1)
+    
+    for i in range(num_agents):
+        avg_sending_rate = np.mean(node_sending_rates[i])
+        avg_throughput = np.mean(node_throughput[i])
+        std_sending_rate = np.std(node_sending_rates[i])
+        std_throughput = np.std(node_throughput[i])
+        efficiency = avg_throughput / avg_sending_rate if avg_sending_rate > 0 else 0
+        
+        print(f"{i:6d} | {custom_priorities[i]:7.2f} | {avg_sending_rate:12.4f} | "
+              f"{avg_throughput:11.4f} | {std_sending_rate:14.4f} | "
+              f"{std_throughput:13.4f} | {efficiency:8.4f} | {final_parents[i]:6d}")
+    
+    # 返回结果
+    results = {
+        'total_reward': total_reward,
+        'WFI_seq': WFI_seq,
+        'throughput_seq': throughput_seq,
+        'ratio_seq': ratio_seq,
+        'action_distribution': action_distribution,
+        'bo_values': total_bo
+    }
     
     return results
 
@@ -186,53 +179,43 @@ if __name__ == "__main__":
         simulation_steps=200
     )
     
-    # 可视化结果
-    plt.figure(figsize=(15, 10))
+    # # 可视化结果
+    # plt.figure(figsize=(15, 10))
     
-    # 原有的四个图
-    plt.subplot(2, 3, 1)
-    plt.plot(results['WFI_seq'])
-    plt.title('Weighted Fairness Index (WFI)')
-    plt.xlabel('Steps')
-    plt.ylabel('WFI')
+    # # 原有的四个图
+    # plt.subplot(2, 3, 1)
+    # plt.plot(results['WFI_seq'])
+    # plt.title('Weighted Fairness Index (WFI)')
+    # plt.xlabel('Steps')
+    # plt.ylabel('WFI')
     
-    plt.subplot(2, 3, 2)
-    plt.plot(results['throughput_seq'])
-    plt.title('Total Throughput')
-    plt.xlabel('Steps')
-    plt.ylabel('Throughput')
+    # plt.subplot(2, 3, 2)
+    # plt.plot(results['throughput_seq'])
+    # plt.title('Total Throughput')
+    # plt.xlabel('Steps')
+    # plt.ylabel('Throughput')
     
-    plt.subplot(2, 3, 3)
-    plt.plot(results['ratio_seq'])
-    plt.title('Throughput/Sending Rate Ratio')
-    plt.xlabel('Steps')
-    plt.ylabel('Ratio')
+    # plt.subplot(2, 3, 3)
+    # plt.plot(results['ratio_seq'])
+    # plt.title('Throughput/Sending Rate Ratio')
+    # plt.xlabel('Steps')
+    # plt.ylabel('Ratio')
     
-    plt.subplot(2, 3, 4)
-    parent_labels = ['Parent 0', 'Parent 1', 'Parent 2']
-    plt.bar(parent_labels, results['action_distribution'][:3])
-    plt.title('Action Distribution')
-    plt.ylabel('Frequency')
+    # plt.subplot(2, 3, 4)
+    # parent_labels = ['Parent 0', 'Parent 1', 'Parent 2']
+    # plt.bar(parent_labels, results['action_distribution'][:3])
+    # plt.title('Action Distribution')
+    # plt.ylabel('Frequency')
     
-    # 添加优先级发送速率的统计图
-    plt.subplot(2, 3, 5)
-    priorities = sorted(results['priority_rates'].keys())
-    avg_rates = [np.mean(results['priority_rates'][p]) for p in priorities]
-    plt.bar([f"Priority {p:.1f}" for p in priorities], avg_rates)
-    plt.title('Average Sending Rates by Priority')
-    plt.xlabel('Priority Level')
-    plt.ylabel('Average Sending Rate')
-    plt.xticks(rotation=45)
+    # # 添加优先级发送速率的箱型图
+    # plt.subplot(2, 3, 5)
+    # box_data = [results['priority_rates'][p] for p in priorities]
+    # plt.boxplot(box_data, labels=[f"Priority {p:.1f}" for p in priorities])
+    # plt.title('Sending Rate Distribution by Priority')
+    # plt.xlabel('Priority Level')
+    # plt.ylabel('Sending Rate')
+    # plt.xticks(rotation=45)
     
-    # 添加优先级发送速率的箱型图
-    plt.subplot(2, 3, 6)
-    box_data = [results['priority_rates'][p] for p in priorities]
-    plt.boxplot(box_data, labels=[f"Priority {p:.1f}" for p in priorities])
-    plt.title('Sending Rate Distribution by Priority')
-    plt.xlabel('Priority Level')
-    plt.ylabel('Sending Rate')
-    plt.xticks(rotation=45)
-    
-    plt.tight_layout()
-    plt.savefig('NGECC_custom_results.png')
-    plt.show() 
+    # plt.tight_layout()
+    # plt.savefig('NGECC_custom_results.png')
+    # plt.show() 
