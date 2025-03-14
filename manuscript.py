@@ -3,6 +3,7 @@ from envs import env_core
 from scipy.stats import gaussian_kde
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from collections import defaultdict
 
 def get_env_params(agent_num = 10, alpha=-1.0, beta=1.0, gamma=0.2, W1=0.4, W2=0.6):
     params = {
@@ -30,6 +31,9 @@ total_ratio_seq = np.zeros(steps_per_epoch)
 total_sending_rate = 0
 total_throughput = 0
 
+# 初始化数据结构来存储每个优先级的发送速率
+priority_rates = defaultdict(list)  # 用于存储每个优先级的所有发送速率
+
 for epoch in tqdm(range(num_epochs), desc="Epochs"):
     # 重置环境
     state = env.reset()
@@ -38,6 +42,7 @@ for epoch in tqdm(range(num_epochs), desc="Epochs"):
     WFI_seq = np.zeros(steps_per_epoch)
     throughput_seq = np.zeros(steps_per_epoch)
     ratio_seq = np.zeros(steps_per_epoch)
+    
     # 执行时间步
     for step in range(steps_per_epoch):
         # 选择动作
@@ -48,12 +53,21 @@ for epoch in tqdm(range(num_epochs), desc="Epochs"):
         total_action_dis[indices] += 1
         # 执行动作并获取奖励
         next_state, reward, done, infos = env.step(actions)
+        
         # 从 infos 中提取 sending_rate 和 pi
         sending_rates = np.array([info['sending_rates'] for info in infos], dtype=np.float32)  # shape: (agent_num,)
         total_sending_rate += np.sum(sending_rates)
         pis = np.array([info['priority'] for info in infos], dtype=np.float32)
+        
+        # 在每个时间步收集每个节点的优先级和发送速率
+        for i in range(num_agents):
+            priority = pis[i]
+            priority_rates[priority].append(sending_rates[i])
+            
+        total_sending_rate += np.sum(sending_rates)
         throughput = np.array([info['throughput'] for info in infos], dtype=np.float32)
         total_throughput += np.sum(throughput)
+        
         # 计算分子和分母
         numerator = np.sum(throughput * pis) ** 2
         denominator = np.sum((throughput * pis) ** 2) * num_agents
@@ -61,6 +75,7 @@ for epoch in tqdm(range(num_epochs), desc="Epochs"):
         WFI_seq[step] = current_WFI
         throughput_seq[step] = np.sum(throughput)
         ratio_seq[step] = np.sum(throughput) / np.sum(sending_rates)
+        
         # 累积奖励
         if step:
             epoch_reward += np.average(reward)
@@ -75,30 +90,65 @@ for epoch in tqdm(range(num_epochs), desc="Epochs"):
     total_throughput_seq += throughput_seq
     total_ratio_seq += ratio_seq
 
-total_WFI_seq /= 500
-total_throughput_seq /= 500
-total_ratio_seq /= 500
+total_WFI_seq /= num_epochs
+total_throughput_seq /= num_epochs
+total_ratio_seq /= num_epochs
+
+# 保存数据
 np.save('OHCA_WFI1.npy', total_WFI_seq)
 np.save('OHCA_throughput1.npy', total_throughput_seq)
 np.save('OHCA_ratio1.npy', total_ratio_seq)
 
 # 输出总体训练结果
-#print(f"\nTraining completed!")
 print(f"Total throughput: {total_throughput:.4f}")
 print(f"deliver ratio: {total_throughput/total_sending_rate:.4f}")
 print(f"Final average reward: {np.mean(epoch_rewards):.4f}")
+
+# 计算并显示每个优先级的统计信息
+print("\nPriority Level Statistics:")
+print("-" * 50)
+print("Priority | Avg Sending Rate | Sample Count | Min Rate | Max Rate")
+print("-" * 50)
+
+for priority in sorted(priority_rates.keys()):
+    rates = np.array(priority_rates[priority])
+    avg_rate = np.mean(rates)
+    count = len(rates)
+    min_rate = np.min(rates)
+    max_rate = np.max(rates)
+    print(f"{priority:8.2f} | {avg_rate:14.4f} | {count:12d} | {min_rate:8.4f} | {max_rate:8.4f}")
+
+# 绘制优先级与发送速率的关系图
+plt.figure(figsize=(12, 6))
+plt.subplot(1, 2, 1)
+priorities = sorted(priority_rates.keys())
+avg_rates = [np.mean(priority_rates[p]) for p in priorities]
+plt.bar([f"{p:.2f}" for p in priorities], avg_rates)
+plt.title('Average Sending Rates by Priority Level')
+plt.xlabel('Priority')
+plt.ylabel('Average Sending Rate')
+plt.xticks(rotation=45)
+
+# 添加箱型图显示发送速率的分布
+plt.subplot(1, 2, 2)
+box_data = [priority_rates[p] for p in priorities]
+plt.boxplot(box_data, labels=[f"{p:.2f}" for p in priorities])
+plt.title('Sending Rate Distribution by Priority')
+plt.xlabel('Priority')
+plt.ylabel('Sending Rate')
+plt.xticks(rotation=45)
+
+plt.tight_layout()
+plt.show()
+
+# 绘制WFI序列
 plt.figure(figsize=(10, 6))
-
-# 绘制折线图
 plt.plot(total_WFI_seq)
-
-# 添加标题和标签
 plt.title('WFI Sequence')
 plt.xlabel('Index')
 plt.ylabel('WFI Value')
-
-# 显示图形
 plt.show()
+
 # print("total_action_dis:", total_action_dis / total_action_dis.sum())
 # # 绘制total_action_dis / total_action_dis.sum()的柱状图
 # plt.figure(figsize=(10, 6))
