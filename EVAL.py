@@ -10,6 +10,7 @@ from envs.env_discrete import DiscreteActionEnv
 from algorithms.algorithm.r_actor_critic import R_Actor
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
+from collections import defaultdict
 
 def _t2n(x):
     return x.detach().cpu().numpy()
@@ -77,9 +78,9 @@ env = DiscreteActionEnv(**params)
 actor = R_Actor(all_args, env.observation_space[0], env.action_space[0], device=torch.device('cuda'))
 actor.load_state_dict(state_dict)
 
-
-
-
+# 在主循环前初始化数据结构来存储每个优先级的发送速率
+priority_sending_rates = defaultdict(list)
+priority_counts = defaultdict(int)
 
 eval_episode_rewards = []
 rnn_states = np.zeros((episode_length + 1, n_rollout_threads, num_agents, recurrent_N, hidden_size),dtype=np.float32).shape[2:]
@@ -112,11 +113,17 @@ for epoch in tqdm(range(500), desc="Epochs"):
         actions_env = np.squeeze(np.eye(env.action_space[0].n)[actions], 1)
         obs, rewards, dones, infos = env.step(actions_env)
 
-
         # 从 infos 中提取 sending_rate 和 pi
         sending_rates = np.array([info['sending_rates'] for info in infos], dtype=np.float32)  # shape: (agent_num,)
         total_sending_rate += np.sum(sending_rates)
         pis = np.array([info['priority'] for info in infos], dtype=np.float32)
+        
+        # 收集每个优先级的发送速率数据
+        for i in range(len(pis)):
+            priority = pis[i]
+            priority_sending_rates[priority].append(sending_rates[i])
+            priority_counts[priority] += 1
+            
         throughput = np.array([info['throughput'] for info in infos], dtype=np.float32)
         total_throughput += np.sum(throughput)
         # 计算分子和分母
@@ -147,12 +154,28 @@ print(f"ratio: {total_throughput/total_sending_rate:.4f}")
 print("average_rewards:", np.average(epoch_rewards))
 print("total_action_dis:", total_action_dis / total_action_dis.sum())
 
-# print(f"Total throughput: {total_throughput:.4f}")
-# print(f"ratio: {total_throughput/total_sending_rate:.4f}")
-# print(f"Final average reward: {np.mean(epoch_rewards):.4f}")
+# 计算并显示每个优先级的平均发送速率
+print("\nAverage Sending Rates by Priority Level:")
+print("----------------------------------------")
+for priority in sorted(priority_sending_rates.keys()):
+    avg_sending_rate = np.mean(priority_sending_rates[priority])
+    count = priority_counts[priority]
+    print(f"Priority {priority:.2f}: Average Sending Rate = {avg_sending_rate:.4f} (Samples: {count})")
+
+# 绘制不同优先级的平均发送速率柱状图
 plt.figure(figsize=(10, 6))
+priorities = sorted(priority_sending_rates.keys())
+avg_rates = [np.mean(priority_sending_rates[p]) for p in priorities]
+plt.bar([f"{p:.2f}" for p in priorities], avg_rates)
+plt.title('Average Sending Rates by Priority Level')
+plt.xlabel('Priority')
+plt.ylabel('Average Sending Rate')
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
 
 # 绘制折线图
+plt.figure(figsize=(10, 6))
 plt.plot(total_WFI_seq)
 
 # 添加标题和标签
