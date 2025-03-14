@@ -30,7 +30,7 @@ def custom_simulation(
     返回:
     - results: 包含模拟结果的字典
     """
-    print(f"\n开始运行自定义仿真，步数: {simulation_steps}")
+    # print(f"\n开始运行自定义仿真，步数: {simulation_steps}")
     
     # 检查输入
     agent_num = len(custom_priorities)
@@ -81,8 +81,8 @@ def custom_simulation(
     total_reward = 0
     
     # 执行仿真步骤
-    print(f"开始进行 {simulation_steps} 步的仿真...")
-    for step in tqdm(range(simulation_steps), desc="仿真步骤"):
+    # print(f"开始进行 {simulation_steps} 步的仿真...")
+    for step in range(simulation_steps):
         # 第一步使用初始父节点选择
         if step == 0:
             actions = initial_actions
@@ -133,10 +133,10 @@ def custom_simulation(
         state = next_state
     
     # 计算并显示每个节点的统计信息
-    print("\n每个节点的统计信息:")
-    print("="*80)
-    print("节点ID | 优先级 | 平均发送速率 | 平均吞吐量 | 发送速率标准差 | 吞吐量标准差 | 传输效率")
-    print("="*80)
+    # print("\n每个节点的统计信息:")
+    # print("="*80)
+    # print("节点ID | 优先级 | 平均发送速率 | 平均吞吐量 | 发送速率标准差 | 吞吐量标准差 | 传输效率")
+    # print("="*80)
     
     node_stats = []
     for i in range(num_agents):
@@ -157,9 +157,9 @@ def custom_simulation(
         }
         node_stats.append(stats)
         
-        print(f"{i:6d} | {custom_priorities[i]:7.2f} | {avg_sending_rate:12.4f} | "
-              f"{avg_throughput:11.4f} | {std_sending_rate:14.4f} | "
-              f"{std_throughput:13.4f} | {efficiency:8.4f}")
+        # print(f"{i:6d} | {custom_priorities[i]:7.2f} | {avg_sending_rate:12.4f} | "
+        #       f"{avg_throughput:11.4f} | {std_sending_rate:14.4f} | "
+        #       f"{std_throughput:13.4f} | {efficiency:8.4f}")
     
 
     
@@ -177,10 +177,10 @@ def custom_simulation(
         'node_stats': node_stats  # 添加节点统计信息到结果中
     }
     
-    print("\n仿真完成!")
-    print(f"平均奖励: {total_reward/simulation_steps:.4f}")
-    print(f"总吞吐量: {total_throughput:.4f}")
-    print(f"吞吐量/发送速率比率: {total_throughput/total_sending_rate if total_sending_rate > 0 else 0:.4f}")
+    # print("\n仿真完成!")
+    # print(f"平均奖励: {total_reward/simulation_steps:.4f}")
+    # print(f"总吞吐量: {total_throughput:.4f}")
+    # print(f"吞吐量/发送速率比率: {total_throughput/total_sending_rate if total_sending_rate > 0 else 0:.4f}")
     
     return results
 
