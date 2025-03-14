@@ -186,49 +186,82 @@ def custom_simulation(
 
 if __name__ == "__main__":
     print("\n" + "="*50)
-    print("执行基于manuscript的自定义仿真 (200步)")
+    print("执行基于manuscript的自定义仿真 (500个epoch，每epoch 200步)")
     print("="*50 + "\n")
     
-    # 定义自定义优先级 (4个节点优先级为1，6个节点优先级为3)
-    custom_priorities = np.array([1, 1, 1, 1, 1, 1, 2, 2, 3, 3])
+    # 定义仿真参数
+    simulation_steps = 200
+    num_epochs = 500
+    agent_num = 10
     
     # 定义初始父节点连接 (每个值代表对应智能体初始连接的父节点，取值应为0、1或2)
     initial_parents = np.array([0, 0, 1, 1, 2, 2, 0, 1, 2, 0])
     
-    # 运行仿真
-    results = custom_simulation(
-        custom_priorities=custom_priorities,
-        initial_parents=initial_parents,
-        simulation_steps=200
-    )
+    # 初始化结果累加器
+    total_WFI_seq = np.zeros(simulation_steps)
+    total_throughput_seq = np.zeros(simulation_steps)
+    total_ratio_seq = np.zeros(simulation_steps)
+    total_reward = 0
     
-    # # 可视化结果
-    # plt.figure(figsize=(12, 8))
+    # 运行500个epoch的仿真
+    for epoch in tqdm(range(num_epochs), desc="Epochs"):
+        # 每个epoch随机生成1-3之间的优先级向量
+        random_priorities = np.random.randint(1, 4, size=agent_num).astype(np.float32)
+        
+        # 运行单次仿真
+        results = custom_simulation(
+            custom_priorities=random_priorities,
+            initial_parents=initial_parents,
+            simulation_steps=simulation_steps
+        )
+        
+        # 累加结果
+        total_WFI_seq += results['WFI_seq']
+        total_throughput_seq += results['throughput_seq']
+        total_ratio_seq += results['ratio_seq']
+        total_reward += results['total_reward']
     
-    # plt.subplot(2, 2, 1)
-    plt.plot(results['WFI_seq'])
-    plt.title('Weighted Fairness Index (WFI)')
+    # 计算平均结果
+    avg_WFI_seq = total_WFI_seq / num_epochs
+    avg_throughput_seq = total_throughput_seq / num_epochs
+    avg_ratio_seq = total_ratio_seq / num_epochs
+    avg_reward = total_reward / num_epochs
+    
+    # 保存结果
+    np.save('OHCA_WFI.npy', avg_WFI_seq)
+    np.save('OHCA_throughput.npy', avg_throughput_seq)
+    np.save('OHCA_ratio.npy', avg_ratio_seq)
+    
+    # 输出总体训练结果
+    print("\n" + "="*50)
+    print(f"500个epoch平均结果:")
+    print(f"平均奖励: {avg_reward/simulation_steps:.4f}")
+    print(f"平均WFI: {np.mean(avg_WFI_seq):.4f}")
+    print(f"平均吞吐量: {np.mean(avg_throughput_seq):.4f}")
+    print(f"平均吞吐率: {np.mean(avg_ratio_seq):.4f}")
+    print("="*50 + "\n")
+    
+    # 可视化结果
+    plt.figure(figsize=(12, 8))
+    
+    plt.subplot(2, 2, 1)
+    plt.plot(avg_WFI_seq)
+    plt.title('Average Weighted Fairness Index (WFI)')
     plt.xlabel('Steps')
     plt.ylabel('WFI')
-    plt.show()
-    # plt.subplot(2, 2, 2)
-    # plt.plot(results['throughput_seq'])
-    # plt.title('Total Throughput')
-    # plt.xlabel('Steps')
-    # plt.ylabel('Throughput')
     
-    # plt.subplot(2, 2, 3)
-    # plt.plot(results['ratio_seq'])
-    # plt.title('Throughput/Sending Rate Ratio')
-    # plt.xlabel('Steps')
-    # plt.ylabel('Ratio')
+    plt.subplot(2, 2, 2)
+    plt.plot(avg_throughput_seq)
+    plt.title('Average Total Throughput')
+    plt.xlabel('Steps')
+    plt.ylabel('Throughput')
     
-    # plt.subplot(2, 2, 4)
-    # parent_labels = ['Parent 0', 'Parent 1', 'Parent 2']
-    # plt.bar(parent_labels, results['action_distribution'][:3])
-    # plt.title('Action Distribution')
-    # plt.ylabel('Frequency')
+    plt.subplot(2, 2, 3)
+    plt.plot(avg_ratio_seq)
+    plt.title('Average Throughput/Sending Rate Ratio')
+    plt.xlabel('Steps')
+    plt.ylabel('Ratio')
     
-    # plt.tight_layout()
-    # plt.savefig('NGECC_custom_results.png')
-    # plt.show() 
+    plt.tight_layout()
+    plt.savefig('OHCA_avg_results.png')
+    plt.show() 
