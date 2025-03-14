@@ -1,6 +1,5 @@
 import numpy as np
 from envs import env_core
-from scipy.stats import gaussian_kde
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
@@ -45,6 +44,10 @@ def custom_simulation(
     num_agents = params['agent_num']
     parent_num = env.parent_num
     
+    # 初始化每个节点的发送速率历史记录
+    node_sending_rates = [[] for _ in range(num_agents)]
+    node_throughput = [[] for _ in range(num_agents)]
+    
     # 初始化指标
     total_bo = []
     action_distribution = np.zeros(11)
@@ -84,8 +87,8 @@ def custom_simulation(
         if step == 0:
             actions = initial_actions
         else:
-            # 后续步骤使用OHCA算法选择动作
-            actions = env.OHCA_take_action()
+            # 后续步骤使用take_action算法选择动作
+            actions = env.take_action()
         
         # 记录动作分布
         sum_one_hot = actions.sum(axis=0)
@@ -95,56 +98,26 @@ def custom_simulation(
         # 执行动作
         next_state, reward, done, infos = env.step(actions)
         
-        # 在第100步查看每个父节点包含的leaf node及其优先级
-        if step == 99:  # 因为步数从0开始，所以第100步是索引99
-            print("\n" + "="*60)
-            print("第100步 - 每个父节点包含的叶节点及其优先级:")
-            print("="*60)
-            
-            # 获取当前的父节点选择（current_parent是one-hot编码）
-            current_parent_indices = np.argmax(env.current_parent, axis=1)
-            
-            # 为每个父节点创建包含的叶节点列表
-            parent_to_leaves = {i: [] for i in range(parent_num)}
-            
-            # 收集每个父节点包含的叶节点及其优先级
-            for leaf_idx in range(agent_num):
-                parent_idx = current_parent_indices[leaf_idx]
-                leaf_priority = env.pi[leaf_idx]
-                parent_to_leaves[parent_idx].append((leaf_idx, leaf_priority))
-            
-            # 打印每个父节点的信息
-            for parent_idx, leaves in parent_to_leaves.items():
-                print(f"\n父节点 {parent_idx}:")
-                if not leaves:
-                    print("  没有连接的叶节点")
-                else:
-                    total_priority = sum(priority for _, priority in leaves)
-                    print(f"  连接的叶节点数量: {len(leaves)}")
-                    print(f"  总优先级: {total_priority:.2f}")
-                    print(f"  平均优先级: {total_priority/len(leaves) if leaves else 0:.2f}")
-                    print("  叶节点列表 (节点ID, 优先级):")
-                    for leaf_idx, priority in leaves:
-                        print(f"    叶节点 {leaf_idx}: 优先级 {priority:.2f}")
-            
-            print("\n" + "="*60)
+        # 记录每个节点的发送速率和吞吐量
+        sending_rates = np.array([info['sending_rates'] for info in infos], dtype=np.float32)
+        throughput = np.array([info['throughput'] for info in infos], dtype=np.float32)
+        
+        for i in range(num_agents):
+            node_sending_rates[i].append(sending_rates[i])
+            node_throughput[i].append(throughput[i])
         
         # 提取指标
-        sending_rates = np.array([info['sending_rates'] for info in infos], dtype=np.float32)
         total_sending_rate += np.sum(sending_rates)
-        
-        priorities = np.array([info['priority'] for info in infos], dtype=np.float32)
-        throughput = np.array([info['throughput'] for info in infos], dtype=np.float32)
         total_throughput += np.sum(throughput)
         
         # 保存历史
         sending_rates_history.append(sending_rates)
         throughput_history.append(throughput)
-        priority_history.append(priorities)
+        priority_history.append(custom_priorities)
         
         # 计算WFI
-        numerator = np.sum(throughput * priorities) ** 2
-        denominator = np.sum((throughput * priorities) ** 2) * num_agents
+        numerator = np.sum(throughput * custom_priorities) ** 2
+        denominator = np.sum((throughput * custom_priorities) ** 2) * num_agents
         current_WFI = numerator / denominator if denominator > 0 else 0
         
         # 更新指标
@@ -159,7 +132,38 @@ def custom_simulation(
         # 更新状态
         state = next_state
     
-    # 准备结果
+    # 计算并显示每个节点的统计信息
+    print("\n每个节点的统计信息:")
+    print("="*80)
+    print("节点ID | 优先级 | 平均发送速率 | 平均吞吐量 | 发送速率标准差 | 吞吐量标准差 | 传输效率")
+    print("="*80)
+    
+    node_stats = []
+    for i in range(num_agents):
+        avg_sending_rate = np.mean(node_sending_rates[i])
+        avg_throughput = np.mean(node_throughput[i])
+        std_sending_rate = np.std(node_sending_rates[i])
+        std_throughput = np.std(node_throughput[i])
+        efficiency = avg_throughput / avg_sending_rate if avg_sending_rate > 0 else 0
+        
+        stats = {
+            'node_id': i,
+            'priority': custom_priorities[i],
+            'avg_sending_rate': avg_sending_rate,
+            'avg_throughput': avg_throughput,
+            'std_sending_rate': std_sending_rate,
+            'std_throughput': std_throughput,
+            'efficiency': efficiency
+        }
+        node_stats.append(stats)
+        
+        print(f"{i:6d} | {custom_priorities[i]:7.2f} | {avg_sending_rate:12.4f} | "
+              f"{avg_throughput:11.4f} | {std_sending_rate:14.4f} | "
+              f"{std_throughput:13.4f} | {efficiency:8.4f}")
+    
+
+    
+    # 原有的结果返回
     results = {
         'total_reward': total_reward,
         'WFI_seq': WFI_seq,
@@ -169,7 +173,8 @@ def custom_simulation(
         'bo_values': total_bo,
         'sending_rates_history': np.array(sending_rates_history),
         'throughput_history': np.array(throughput_history),
-        'priority_history': np.array(priority_history)
+        'priority_history': np.array(priority_history),
+        'node_stats': node_stats  # 添加节点统计信息到结果中
     }
     
     print("\n仿真完成!")
@@ -185,7 +190,7 @@ if __name__ == "__main__":
     print("="*50 + "\n")
     
     # 定义自定义优先级 (4个节点优先级为1，6个节点优先级为3)
-    custom_priorities = np.array([1, 1, 1, 1, 3, 3, 3, 3, 3, 3])
+    custom_priorities = np.array([1, 1, 1, 1, 2, 2, 3, 3, 3, 3])
     
     # 定义初始父节点连接 (每个值代表对应智能体初始连接的父节点，取值应为0、1或2)
     initial_parents = np.array([0, 0, 1, 1, 2, 2, 0, 1, 2, 0])
@@ -196,11 +201,6 @@ if __name__ == "__main__":
         initial_parents=initial_parents,
         simulation_steps=200
     )
-    
-    # 保存结果
-    np.save('custom_manuscript_WFI.npy', results['WFI_seq'])
-    np.save('custom_manuscript_throughput.npy', results['throughput_seq'])
-    np.save('custom_manuscript_ratio.npy', results['ratio_seq'])
     
     # 可视化结果
     plt.figure(figsize=(12, 8))
@@ -230,5 +230,5 @@ if __name__ == "__main__":
     plt.ylabel('Frequency')
     
     plt.tight_layout()
-    plt.savefig('custom_manuscript_results.png')
+    plt.savefig('NGECC_custom_results.png')
     plt.show() 
