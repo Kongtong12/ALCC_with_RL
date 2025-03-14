@@ -64,7 +64,6 @@ for epoch in tqdm(range(num_epochs), desc="Epochs"):
             priority = pis[i]
             priority_rates[priority].append(sending_rates[i])
             
-        total_sending_rate += np.sum(sending_rates)
         throughput = np.array([info['throughput'] for info in infos], dtype=np.float32)
         total_throughput += np.sum(throughput)
         
@@ -95,9 +94,9 @@ total_throughput_seq /= num_epochs
 total_ratio_seq /= num_epochs
 
 # 保存数据
-np.save('OHCA_WFI1.npy', total_WFI_seq)
-np.save('OHCA_throughput1.npy', total_throughput_seq)
-np.save('OHCA_ratio1.npy', total_ratio_seq)
+np.save('NGECC_WFI.npy', total_WFI_seq)
+np.save('NGECC_throughput.npy', total_throughput_seq)
+np.save('NGECC_ratio.npy', total_ratio_seq)
 
 # 输出总体训练结果
 print(f"Total throughput: {total_throughput:.4f}")
