@@ -1,6 +1,8 @@
 # MAPPO Learning
 
-Priority-aware MAPPO implementation for the wireless sensing network experiments described in *Pan et al., IJCS Vol. 3 No. 1*. The repository contains the Python reference simulator, MAPPO training stack, and the evaluation utilities that produced the figures reported in the manuscript. A Chinese walkthrough is still available in [README_CN.md](README_CN.md).
+Priority-aware MAPPO implementation for the wireless sensing network experiments described in *Pan et al., IJCS Vol. 3 No. 1*. This repository contains the Python reference simulator, MAPPO training stack, and the numerical evaluation utilities that produced the algorithmic analysis figures reported in the manuscript. A Chinese walkthrough is still available in [README_CN.md](README_CN.md).
+
+> **⚠️ Note on Realistic Network Simulation (Docker):** > This repository is dedicated to the **Reinforcement Learning training phase** and mathematical simulation. The actual protocol-level 6LoWPAN network simulation (where nodes are implemented as independent Docker containers, as described in Section 4 of our paper) is hosted in a separate public repository. Please see the [Docker Network Simulation](#-realistic-network-simulation-docker) section below for details and links.
 
 > This project originates from the lightweight MAPPO template by @tinyzqh and has been extended with a custom wireless environment, evaluation pipelines, and experiment tracking tailored to the IJCS study.
 
@@ -11,28 +13,40 @@ Priority-aware MAPPO implementation for the wireless sensing network experiments
 - **Custom environment.** `envs/env_core.py` rewrites the MAPPO environment to emulate 10 leaf nodes selecting among 3 parent relays with stochastic ETX, BO feedback, per-node capacity limits, and dynamic priority (`pi`) sampling.
 - **Policy training.** `train/train.py` wraps the environment with `DummyVecEnv`, binds it to the MAPPO runner (`runner/shared/env_runner.py`), and logs checkpoints under `results/MyEnv/...`.
 - **Evaluation tooling.** `EVAL.py`, `EVAL1.py`, and `custom_eval.py` reproduce the fairness (WFI), throughput, action distribution, and node-level analytics featured in the paper, exporting `.npy` traces for downstream plotting.
-- **Python-first workflow for realistic training.** This repository hosts the high-fidelity Python simulator and MAPPO training scripts we used to mirror the real deployment scenario. Docker-based replay lives in a separate repo (see below) and reuses the checkpoints produced here.
+- **Algorithm-to-System Workflow.** All RL models are trained and validated mathematically here in Python. The resulting `.pt` policy files are then exported to our separate Docker-based 6LoWPAN simulator for realistic network validation.
 
 ---
 
 ## Repository Layout
 
-```
-mappo_learning/
-├── train/train.py          # Entry point for MAPPO training
-├── runner/shared/env_runner.py
-├── envs/
-│   ├── env_core.py         # Priority-aware WSN dynamics
-│   ├── env_discrete.py     # Gym wrapper for discrete actions
-│   └── env_wrappers.py     # Vectorized env helper
-├── algorithms/             # MAPPO/RMAPPO implementations
-├── EVAL.py / EVAL1.py      # Batch evaluation (fixed vs. dynamic priorities)
-├── custom_eval.py          # Single-scenario replay with custom priors/topology
-├── config.py               # Global CLI + hyperparameter parser
-├── requirements.txt
-├── results/                # Checkpoints and exported metrics
-└── README_CN.md
-```
+    mappo_learning/
+    ├── train/train.py          # Entry point for MAPPO training
+    ├── runner/shared/env_runner.py
+    ├── envs/
+    │   ├── env_core.py         # Priority-aware WSN dynamics (Numerical)
+    │   ├── env_discrete.py     # Gym wrapper for discrete actions
+    │   └── env_wrappers.py     # Vectorized env helper
+    ├── algorithms/             # MAPPO/RMAPPO implementations
+    ├── EVAL.py / EVAL1.py      # Batch evaluation (fixed vs. dynamic priorities)
+    ├── custom_eval.py          # Single-scenario replay with custom priors/topology
+    ├── config.py               # Global CLI + hyperparameter parser
+    ├── requirements.txt
+    ├── results/                # Checkpoints and exported metrics
+    └── README_CN.md
+
+---
+
+## 🐳 Realistic Network Simulation (Docker)
+
+**Important for Reproducibility:** The Python environment (`envs/env_core.py`) in this repository is designed for the *rapid training and mathematical verification* of the MAPPO agents. It simulates the core metrics (ETX, BO, capacities, priorities) at an algorithmic level to allow for millions of RL interaction steps.
+
+To evaluate our trained policies in a realistic network topology with actual packet transmission, routing delays, and 6LoWPAN protocol-level interactions (as detailed in **Section 4.2 Simulation Setup** of the manuscript), we deployed these trained models into a full containerized environment.
+
+The Docker-based network simulation framework—where each node is implemented as an independent container communicating via IP and ports—is completely open-source and maintained in a dedicated repository:
+
+👉 **[https://github.com/Kongtong12/Simulation_on_docker](https://github.com/Kongtong12/Simulation_on_docker)**
+
+Trained `.pt` policies generated from *this* RL repository are directly loaded into the leaf node containers in the Docker simulation to test their real-world congestion control performance.
 
 ---
 
@@ -42,30 +56,25 @@ mappo_learning/
 1. Create a Conda or venv environment (Python ≥ 3.9 recommended).
 2. Install PyTorch with CUDA that matches your driver (e.g. `pip install torch==2.5.1+cu124 torchvision==0.20.1+cu124 torchaudio==2.5.1+cu124 --index-url https://download.pytorch.org/whl/cu124`).
 3. Install the remaining dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
-   The list includes `gymnasium`, `numpy`, `scipy`, `matplotlib`, `setproctitle`, `tqdm`, etc. (Windows-style encoding in the file is expected).
 
-### Docker validation (optional)
-Docker images and runtime scripts are maintained separately in [Simulation_on_docker](https://github.com/Kongtong12/Simulation_on_docker). Use that repository when you want to replay trained agents in containerized environments; it mounts the checkpoints generated here and runs the same evaluation commands for deployment benchmarking.
+    pip install -r requirements.txt
+
+   The list includes `gymnasium`, `numpy`, `scipy`, `matplotlib`, `setproctitle`, `tqdm`, etc. (Windows-style encoding in the file is expected).
 
 ---
 
 ## Quick Start (Python Simulation)
 
-```bash
-# 1) Configure hyperparameters if needed
-vim config.py  # adjust PPO/MAPPO switches, threads, etc.
+1) Configure hyperparameters if needed:
+    vim config.py  # adjust PPO/MAPPO switches, threads, etc.
 
-# 2) Launch training with custom env parameters
-python -m train.train \
-  --env_name MyEnv \
-  --scenario_name MyEnv \
-  --experiment_name check \
-  --algorithm_name mappo \
-  --seed 42
-```
+2) Launch training with custom env parameters:
+    python -m train.train \
+      --env_name MyEnv \
+      --scenario_name MyEnv \
+      --experiment_name check \
+      --algorithm_name mappo \
+      --seed 42
 
 Key runtime options:
 - `train/train.py` sets MAPPO defaults (shared policy, 5 rollout threads, 10 agents). Edit `get_env_params()` to sweep agent counts or reward coefficients (`alpha`, `beta`, `gamma`, `W1`, `W2`).
@@ -83,7 +92,7 @@ Key runtime options:
 - **Rewards.** `_compute_rewards` combines weighted throughput, penalties for parent switching (`switch_penalty`), and the coefficients (`alpha`, `beta`, `gamma`, `W1`, `W2`) specified through `get_env_params`.
 - **Vectorization.** `env_wrappers.DummyVecEnv` batches environments for MAPPO and customizes shared observations so centralized critics see BO and priority summaries.
 
-These mechanics align with the IJCS manuscript description: agents compete for limited relay bandwidth, priorities influence throughput fairness, and the controller learns to balance load with minimal switching.
+These mechanics mathematically align with the IJCS manuscript description, allowing the controller to learn to balance load with minimal switching before being deployed to the Docker network.
 
 ---
 
@@ -106,12 +115,10 @@ These mechanics align with the IJCS manuscript description: agents compete for l
 
 Typical usage:
 
-```bash
-python EVAL.py --scenario_name MyEnv --num_agents 10
-python EVAL1.py --scenario_name MyEnv --num_agents 10
-python custom_eval.py --scenario_name MyEnv --num_agents 10 \
-  --actor_path results/MyEnv/MyEnv/mappo/check/run34/models/actor.pt
-```
+    python EVAL.py --scenario_name MyEnv --num_agents 10
+    python EVAL1.py --scenario_name MyEnv --num_agents 10
+    python custom_eval.py --scenario_name MyEnv --num_agents 10 \
+      --actor_path results/MyEnv/MyEnv/mappo/check/run34/models/actor.pt
 
 Make sure the paths inside each script (`checkpoint = torch.load(...)`) point to the checkpoint you want to inspect.
 
@@ -120,40 +127,5 @@ Make sure the paths inside each script (`checkpoint = torch.load(...)`) point to
 ## Results & Logging Artifacts
 
 - `results/MyEnv/.../summary.log`: scalar training metrics flushed by MAPPO.
-- `*.npy` files from `EVAL*.py`: sequences used to plot WFI trends, throughput time series, and throughput-to-sending-rate ratios (exactly the curves referenced in the IJCS manuscript).
+- `*.npy` files from `EVAL*.py`: sequences used to plot WFI trends, throughput time series, and throughput-to-sending-rate ratios.
 - `data_record.md`: lab notebook containing experiment identifiers, reward snapshots, and notes on priority sampling ideas.
-
----
-
-## Python vs. Docker Implementation
-
-This repository focuses on the most realistic possible training setup: a Python simulator that already injects stochastic ETX, BO feedback, and priority reshuffling exactly as described in the manuscript. All algorithmic contributions (environment dynamics, MAPPO policy, evaluation) live here.
-
-If you need the containerized replay or deployment scaffolding, visit [Simulation_on_docker](https://github.com/Kongtong12/Simulation_on_docker). That project wraps the checkpoints exported from this repo, so no Docker-specific logic is duplicated here.
-
----
-
-## Citation
-
-If you use this repository, please cite both the original lightweight MAPPO template and our IJCS article:
-
-```
-@article{pan2024mappo,
-  title     = {Priority-Aware MAPPO for Wireless Sensor Networks},
-  author    = {Pan, Jiasheng and co-authors},
-  journal   = {International Journal of Communication Systems},
-  volume    = {3},
-  number    = {1},
-  year      = {2024}
-}
-
-@article{qiu2024enhancing,
-  title   = {Enhancing UAV Communications in Disasters: Integrating ESFM and MAPPO for Superior Performance},
-  journal = {Journal of Circuits, Systems and Computers},
-  year    = {2024}
-}
-```
-
----
-
-For additional clarifications (including Docker runtime notes or manuscript excerpts), please open an issue or consult `README_CN.md` for the Chinese walkthrough.
