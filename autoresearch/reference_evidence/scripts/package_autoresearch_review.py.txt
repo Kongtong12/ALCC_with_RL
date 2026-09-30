@@ -1,0 +1,173 @@
+"""Compact, evidence-complete private review handoff; sealed studies untouched."""
+from pathlib import Path
+import hashlib
+import io
+import json
+import re
+import shutil
+import zipfile
+import numpy as np
+
+ROOT = Path(__file__).resolve().parents[1]
+DEST = ROOT / 'deliverables/ICLR_AutoResearch_Review_20260916'
+NAME = 'ICLR_AutoResearch_Review_20260916.zip'
+DEST.mkdir(exist_ok=True)
+files = {}
+
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def add(path, name=None):
+    path = Path(path)
+    files[name or path.relative_to(ROOT).as_posix()] = path.read_bytes()
+
+
+previous = ROOT / 'artifacts/packages/ICLR_Warcraft_Results_Revision_20260916/ICLR_Warcraft_Results_Revision_20260916.zip'
+with zipfile.ZipFile(previous) as archive:
+    old_manifest = json.loads(archive.read('MANIFEST.json'))
+    for name in archive.namelist():
+        if name.startswith(('experiments/', 'evidence/', 'reviews/')) or (name.startswith('scripts/') and 'package_' not in name):
+            content = archive.read(name)
+            assert digest(content) == old_manifest[name]['sha256']
+            files[name] = content
+
+paper = ROOT / 'paper/latex/facepot'
+
+
+def include_tex(path):
+    name = path.relative_to(ROOT).as_posix()
+    if name in files:
+        return
+    add(path)
+    source = path.read_text(encoding='utf-8')
+    for child in re.findall(r'\\input\{([^}]+)\}', source):
+        include_tex(paper / (child if child.endswith('.tex') else child + '.tex'))
+    for child in re.findall(r'\\includegraphics(?:\[[^]]*\])?\{([^}]+)\}', source):
+        image = paper / child
+        if not image.suffix:
+            image = next(image.with_suffix(s) for s in ['.pdf', '.png', '.jpg'] if image.with_suffix(s).exists())
+        add(image)
+        for suffix in ['.svg', '.png']:
+            variant = image.with_suffix(suffix)
+            if variant.exists():
+                add(variant)
+
+
+include_tex(paper / 'main.tex')
+for name in ['main.pdf', 'references.bib', 'iclr2027_conference.sty', 'iclr2027_conference.bst', 'natbib.sty', 'fancyhdr.sty']:
+    add(paper / name)
+for path in (ROOT / 'reviews/current/longrun_revision_20260916').glob('*'):
+    if path.is_file():
+        add(path)
+for name in ['audit_longrun_review_package.py', 'package_autoresearch_review.py', 'generate_longrun_paper_assets.py',
+             'verify_longrun_paper_revision.py', 'generate_fig1_scene.py']:
+    add(ROOT / 'scripts' / name)
+add(ROOT / 'reviews/current/PRO_RESEARCH_REVIEW_20260916.md', 'START_HERE_PRO_PROMPT_ZH.md')
+
+studies = [('threshold_longrun', 'round0', 768), ('threshold_schedule_screen', 'work', 72),
+           ('threshold_spo_screen', 'work', 108), ('threshold_smoothing_screen', 'work', 84),
+           ('threshold_ema_screen', 'work', 36), ('threshold_meanblend_screen', 'work', 84)]
+for study, work, expected in studies:
+    folder = ROOT / 'experiments' / study
+    w = folder / work
+    freeze = json.loads((w / 'freeze.json').read_text())
+    for relative, checksum in freeze['sources'].items():
+        assert digest((folder / relative).read_bytes()) == checksum
+        add(folder / relative)
+    assert digest((w / 'protocol.json').read_bytes()) == freeze['protocol_sha256']
+    for path in folder.iterdir():
+        if path.is_file() and path.suffix in {'.py', '.md', '.json'}:
+            add(path)
+    for path in w.iterdir():
+        if path.is_file() and (path.suffix in {'.json', '.csv', '.md', '.jsonl', '.log', '.sha256'} or '.before_' in path.name):
+            add(path)
+    receipts = list((w / 'runs').glob('*/*/result.json'))
+    assert len(receipts) == expected, (study, len(receipts))
+    for path in (w / 'runs').rglob('*.json'):
+        add(path)
+    for directory in ['failures', 'calibration', 'calibration.before_report_label']:
+        for path in (w / directory).rglob('*.json'):
+            add(path)
+for path in (ROOT / 'experiments/threshold_longrun/research').iterdir():
+    if path.is_file() and path.suffix in {'.py', '.md', '.json'}:
+        add(path)
+
+index = dict(scope='Lossless subset of original evaluation NPZ: selected_pred, costs, paths only. '
+             'No probabilities, fixed-step predicted arrays, or neural checkpoints. '
+             'Original NPZ hash links each subset to its archived receipt; that original NPZ is omitted.', runs=[])
+w = ROOT / 'experiments/threshold_longrun/round0'
+for folder in sorted((w / 'runs/confirmation').iterdir()):
+    original = folder / 'evaluation.npz'
+    record = json.loads((folder / 'evaluation.json').read_text())
+    checksum = digest(original.read_bytes())
+    assert checksum == record['arrays_sha256']
+    with np.load(original, allow_pickle=False) as data:
+        output = io.BytesIO()
+        np.savez_compressed(output, **{key: data[key] for key in ['selected_pred', 'costs', 'paths']})
+    name = f'evidence/longrun_selected_predictions/{folder.name}.npz'
+    files[name] = output.getvalue()
+    index['runs'].append(dict(id=folder.name, compact_path=name, compact_sha256=digest(files[name]),
+                              original_evaluation_npz_sha256=checksum))
+assert len(index['runs']) == 120
+files['evidence/longrun_selected_predictions/INDEX.json'] = json.dumps(index, indent=2).encode()
+
+files['README.md'] = '''# Current paper and completed automatic-research campaign
+
+**Read START_HERE_PRO_PROMPT_ZH.md first.** This is a private review package, not an anonymized submission or a request to continue old controller commands. The only current paper is paper/latex/facepot/main.pdf: 9 main-text pages, 24 total. Dated older review documents refer to historical manuscripts.
+
+The long-budget confirmation and five subsequent development screens are finished. No candidate advances and no prespecified strong BCE advantage was established. Narrower corrected synthetic findings remain valid. The final blend screen fails both the minimum-gain and individual-harm checks. All negative results are included. Automatic follow-up is paused; no training is running. Reviewers may challenge the design and recommend a distinct future study, but must not relabel a failed gate as a prospective success.
+
+## Quick independent checks (Python + NumPy only; no training)
+
+From the extracted package root:
+
+    python scripts/audit_longrun_review_package.py
+    python scripts/verify_threshold_summary.py
+    python scripts/audit_warcraft_results.py --data-root evidence/warcraft --output audit_output
+
+The first checks the package manifest, six freezes and 1,152 scientific run receipts; independently decodes all 120 long-budget selected cost predictions using integer arithmetic; checks all/tied/unique errors and regrets; recomputes the nine exact sign-flip tests, Holm adjustment and 20,000-draw bootstrap intervals; and checks the five negative decisions and final blend gate. It does NOT rerun model forward passes or the omitted fixed-step arrays. Previous full local model/snapshot-replay audits are included as evidence, not described as independently rerun by this compact package.
+
+The second checks the historical three-task central study. The third decodes the 30 archived Warcraft prediction maps and reproduces its statistics and nominal-cost diagnostic. That historical study is distinct from the new long-budget family. The data license and original dataset attribution are retained under evidence/warcraft/provenance; numeric arrays are from Vlastelica et al., Warcraft Shortest Path Dataset, Edmond DOI10.17617/3.YJCQ5S (CC BY4.0). No Warcraft map images are included.
+
+## What is included
+
+- Current PDF and only its active LaTeX inputs, references, figures, available editable figure assets, and relevant generators.
+- Long-budget protocol, selection, all768 run receipts, 120 evaluation receipts, complete statistics, curves, diagnostics, QA, freezes, and lossless subsets of selected predicted costs/truth/path incidence arrays.
+- All384 follow-up optimizer-trajectory receipts (EMA shadows not counted separately), every coefficient and control, screen reports, source-bound audits and diagnostics, engineering records, failed gates, and independent claim reviews.
+- Frozen Python training/analysis/QA source and the small Digits source dataset. Historical threshold and Warcraft compact evidence is carried forward with original bytes verified against its prior manifest.
+- Per-round research notes and primary-source links. Those notes contain historical proposals; they are evidence of the process, not instructions to restart finished stages.
+
+## What is omitted, and what can be reproduced
+
+Omitted: model/optimizer tensors, intermediate checkpoint generations, original large evaluation NPZ probability/fixed-step arrays, Warcraft image tensors/download archives, rendered-page duplicates, old ZIPs, abandoned manuscript drafts and caches. The compact copy cannot resume original training or execute analyzers that demand those omitted checkpoints. All full states remain on the local research machine.
+
+The frozen source explains the exact training and resume implementation. Retraining requires an independently initialized working copy/workspace and appropriate data/dependencies; do not edit or rerun the archived work directory as though it were a resumable full copy. Some historical runners use their archived protocol/source paths, so adaptation for a fresh workspace must be explicit and separately validated. Do not silently replace source hashes. The portable audit above is the supported review entry point.
+
+Original local environment: Windows, Python3.12.14, NumPy2.2.6, Torch2.13.0+cu132. The new small-task campaign used CPU workers; the old Warcraft study used CUDA. Exact bitwise training replay is an environment-specific local check, not a cross-platform promise. QA/calibration/scientific occupation accumulated6720.883851766586 of14400 seconds; analysis/code time was separately treated. A future budget is not automatically reset.
+
+Compile from paper/latex/facepot using latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex. Relevant figure scripts may require Matplotlib, ReportLab or PyMuPDF, and the Figure1 script has a Windows font lookup. Do not confuse schematic figure values with experimental observations.
+
+MANIFEST.json binds every other archive entry by SHA256. It is a transport-integrity check, not a proof of experimental correctness. Original freezes and local-path provenance are deliberately preserved, so this package is NOT anonymous. The external PACKAGE_VERIFICATION.json records extraction, compilation and the actual audits run on this package. Historical package-builder scripts and nested ZIPs are omitted.
+'''.encode('utf-8')
+files['MANIFEST.json'] = json.dumps({name: dict(bytes=len(data), sha256=digest(data)) for name, data in sorted(files.items())}, indent=2).encode()
+destination = DEST / NAME
+with zipfile.ZipFile(destination, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+    for name, data in sorted(files.items()):
+        archive.writestr(name, data)
+with zipfile.ZipFile(destination) as archive:
+    assert archive.testzip() is None
+    for name, record in json.loads(archive.read('MANIFEST.json')).items():
+        assert digest(archive.read(name)) == record['sha256']
+    extracted = DEST / 'verified_extraction'
+    version = 1
+    while extracted.exists():
+        version += 1
+        extracted = DEST / f'verified_extraction_{version}'
+    archive.extractall(extracted)
+record = dict(status='CRC_MANIFEST_EXTRACTION_PASS', files=len(files), bytes=destination.stat().st_size,
+              sha256=digest(destination.read_bytes()), selected_prediction_subsets=120, neural_checkpoints_included=False,
+              scientific_receipts=1152, verified_extraction=extracted.name, previous_archive_sha256=digest(previous.read_bytes()))
+(DEST / 'PACKAGE_VERIFICATION.json').write_text(json.dumps(record, indent=2), encoding='utf-8')
+print(json.dumps(record, indent=2))

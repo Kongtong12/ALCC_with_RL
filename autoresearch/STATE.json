@@ -1,0 +1,31 @@
+{
+  "as_of": "2026-09-30",
+  "phase": "workflow_prepared",
+  "objective": "Evaluate and pursue a defensible ALCC theory-and-algorithm reconstruction within the user's accepted one-to-two-month window",
+  "active_round": "R001",
+  "round_status": "draft_not_executed_not_frozen",
+  "research_direction": "candidate_only_certificate_reuse_for_dynamic_resource_assignment",
+  "training_active": false,
+  "scheduler_installed": false,
+  "reference_project_executed": false,
+  "reference_audit_scope": "static_code_and_saved_records_only",
+  "compute_budget": {
+    "status": "not_configured",
+    "hardware": null,
+    "campaign_wall_seconds": null,
+    "gpu_job_hours": null,
+    "external_model_spend_cap": null
+  },
+  "next_action": "Execute R001 literature-overlap, proof-counterexample, and minimal-cost screening; select one route based on evidence",
+  "open_questions": [
+    "Does the candidate certificate-plus-refinement result exceed the closest prior theorems?",
+    "Can end-to-end computation beat warm starts and direct old-dual rechecks at matched decision quality?",
+    "What hardware and training budget are available for later experimental rounds?"
+  ],
+  "evidence_inputs": [
+    "../general_theory_reconstruction_feasibility_2026-09-29.md",
+    "../theory_upgrade_assessment_2026-09-28.md",
+    "../manuscript_specific_revision_proposal.md",
+    "reference_evidence/MANIFEST.json"
+  ]
+}

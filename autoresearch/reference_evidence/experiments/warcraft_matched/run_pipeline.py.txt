@@ -1,0 +1,13 @@
+"""One-command execution after data preparation: strict calibration/freeze/run gates."""
+import argparse,subprocess,sys
+from pathlib import Path
+p=argparse.ArgumentParser(description=__doc__);p.add_argument('--workspace',type=Path,required=True);p.add_argument('--design',type=Path,default=Path(__file__).parent/'protocols/design_v1.json');p.add_argument('--reveal-test',action='store_true',help='Only after all predeclared train/validation runs complete.');a=p.parse_args()
+base=[sys.executable,'-m','wcstudy','--workspace',str(a.workspace)]
+try:
+ for command,marker in [(['check'],None),(['calibrate','--design',str(a.design)],'calibration.json'),(['freeze','--design',str(a.design)],'freeze.json'),(['resume','--stage','development'],None),(['select'],None),(['resume','--stage','confirmation'],None)]:
+  if marker and (a.workspace/marker).exists():continue
+  subprocess.run(base+command,check=True)
+  if (a.workspace/'PAUSE').exists():break
+ if a.reveal_test and not (a.workspace/'PAUSE').exists():
+  subprocess.run(base+['evaluate'],check=True);subprocess.run(base+['analyze'],check=True)
+finally:subprocess.run(base+['report'],check=False)

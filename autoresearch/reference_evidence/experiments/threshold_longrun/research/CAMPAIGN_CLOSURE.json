@@ -1,0 +1,25 @@
+{
+  "date": "2026-09-16",
+  "status": "bounded_intervention_sequence_closed",
+  "scientific_goal_achieved": false,
+  "intended_goal": "Prespecified strong BCE advantage",
+  "scientific_optimizer_trajectories": 1152,
+  "development_trajectories": 1032,
+  "confirmation_trajectories": 120,
+  "development_screens_completed": 5,
+  "candidates_advancing": 0,
+  "active_training": false,
+  "automation_id": "automation",
+  "automation_status": "PAUSED",
+  "cumulative_occupied_seconds": 6720.883851766586,
+  "cap_seconds": 14400,
+  "stopping_reason": "Final predeclared small-intervention gate failed; no further nearby rescue",
+  "paper_sha256": "56326037a8bb3f5ed65e62caa219a52f6b7dca0f16aa6344c9b143c0d6fbc4be",
+  "files_sha256": {
+    "MEANBLEND_RESULT_REVIEW.json": "d66109fde11ce5722031889549236b1eb1d585a66666d991aac76a8dda021f9e",
+    "MEANBLEND_SCREEN_RESULTS.md": "856cc7d00f4946054a338355edc3fb9ecb0bbe6aeb2f9c9b25cd704b91894bbf",
+    "AUTO_RESEARCH_REPORT_ZH.md": "8bc49c0c06fb7795cd11ce13accf76f9e124cbefb3692ed022be714750ca2823",
+    "CAMPAIGN_REASSESSMENT_REVIEW.md": "4603d74ec2d50a67209e95399caf1814b8636410cb34f38401d76361d2458ddd",
+    "MEANBLEND_RESULT_REVIEW.md": "c512d9186482ccd6c4c6f12b62097babd8786928f3e21a17e7955d1a4d3659e8"
+  }
+}

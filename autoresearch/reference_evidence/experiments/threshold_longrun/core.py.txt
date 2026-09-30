@@ -1,0 +1,192 @@
+"""Matched long-budget study. Original source is vendored unchanged in code/base.py."""
+from __future__ import annotations
+import os
+for k in ['OMP_NUM_THREADS','MKL_NUM_THREADS','OPENBLAS_NUM_THREADS']:os.environ[k]='1'
+import sys,json,hashlib,time,copy,uuid,ctypes
+from pathlib import Path
+from functools import lru_cache
+import numpy as np
+import torch
+ROOT=Path(__file__).resolve().parent
+sys.path.insert(0,str(ROOT/'code'))
+import base as B
+torch.set_num_threads(1)
+torch.use_deterministic_algorithms(True)
+
+def read(p):
+ return json.loads(Path(p).read_text(encoding='utf-8'))
+def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def identity(x):return hashlib.sha256(json.dumps(x,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+def write(p,x):
+ p=Path(p);p.parent.mkdir(parents=True,exist_ok=True);t=p.with_name(p.name+'.'+uuid.uuid4().hex+'.tmp')
+ t.write_text(json.dumps(x,indent=2,allow_nan=False)+'\n',encoding='utf-8')
+ for i in range(50):
+  try:t.replace(p);return
+  except PermissionError:
+   if i==49:raise
+   time.sleep(.02)
+def immutable(p,x):
+ p=Path(p)
+ if p.exists():
+  if read(p)!=x:raise RuntimeError('Immutable record mismatch: '+str(p))
+ else:write(p,x)
+def alive(pid):
+ if os.name=='nt':
+  k=ctypes.windll.kernel32;k.OpenProcess.restype=ctypes.c_void_p
+  h=k.OpenProcess(0x1000,False,int(pid))
+  if not h:return False
+  code=ctypes.c_ulong();ok=k.GetExitCodeProcess(ctypes.c_void_p(h),ctypes.byref(code));k.CloseHandle(ctypes.c_void_p(h))
+  return bool(ok) and code.value==259
+ try:os.kill(int(pid),0);return True
+ except ProcessLookupError:return False
+def sources():return {n:sha(ROOT/n) for n in ['core.py','run.py','analyze.py','code/base.py','data/digits_source.npz']}
+def verify(w):
+ w=Path(w);f=read(w/'freeze.json')
+ if f['sources']!=sources():raise RuntimeError('Frozen source changed')
+ if sha(w/'protocol.json')!=f['protocol_sha256']:raise RuntimeError('Frozen protocol changed')
+ return read(w/'protocol.json')
+
+@lru_cache(maxsize=24)
+def data(task,seed,split):
+ """Internal factory. Scientific evaluation goes through gated_data, never this cache."""
+ if task!='digits_route4':return B._cached_data(task,seed,split)
+ with np.load(ROOT/'data/digits_source.npz',allow_pickle=False) as z:
+  images=z['images'];labels=z['labels']
+ ids=np.random.default_rng(np.random.SeedSequence([seed,411])).permutation(len(labels))
+ pools={'train':ids[:1078],'val':ids[1078:1437],'eval':ids[1437:]}
+ n={'train':1024,'val':256,'eval':1024}[split]
+ rng=np.random.default_rng(np.random.SeedSequence([seed,{'train':412,'val':413,'eval':414}[split]]))
+ boards=rng.choice(pools[split],(n,16),replace=True);edges,A,base=B.grid_graph()
+ c=1+labels[boards];x=images[boards].astype(np.float32)/16.
+ d=dict(x=x,costs=c,labels=c-base,paths=A,edges=edges,base=base,K=10,shared=True,source_ids=boards,pool_ids=pools[split])
+ costs=c@A.T;d['face']=costs==costs.min(1,keepdims=True);d['hash']=B.hash_arrays(x,c,A)
+ return d
+def gated_data(w,cfg,split):
+ p=verify(w)
+ if split=='eval':
+  if cfg['stage']!='confirmation' or not (Path(w)/'test_gate.json').exists():raise RuntimeError('Evaluation gate closed')
+  gate=read(Path(w)/'test_gate.json')
+  if gate['freeze_sha256']!=sha(Path(w)/'freeze.json') or gate['selection_sha256']!=sha(Path(w)/'selection.json'):raise RuntimeError('Evaluation gate binding mismatch')
+  expected=jobs(w,'confirmation',p)
+  if cfg not in expected:raise RuntimeError('Unregistered evaluation trial')
+  wanted={'runs/'+stage+'/'+identity(c)[:20]+'/result.json' for stage in ['development','confirmation'] for c in jobs(w,stage,p)}
+  if set(gate.get('receipts',{}))!=wanted:raise RuntimeError('Incomplete or forged evaluation gate')
+  for name,h in gate['receipts'].items():
+   if sha(Path(w)/name)!=h:raise RuntimeError('Sealed training record changed')
+ return data(cfg['task'],cfg['data_seed'],split)
+def units(p,task,stage):
+ seeds=p['data_seeds'][stage][task]
+ return [dict(data_seed=s,unit=i,repeat=j,model_seed=s+1000000+100*j) for i,s in enumerate(seeds) for j in range(2 if task=='digits_route4' else 1)]
+def jobs(w,stage,p=None):
+ w=Path(w);p=verify(w) if p is None else p
+ selection=None
+ if stage=='confirmation':
+  selection=read(w/'selection.json')
+  if selection['freeze_sha256']!=sha(w/'freeze.json') or sha(w/'selection.json')!=(w/'selection.sha256').read_text().strip():raise RuntimeError('Invalid selection')
+ out=[]
+ for task in p['tasks']:
+  configs=p['configs'][task] if stage=='development' else list(selection['chosen'][task].values())
+  for u in units(p,task,stage):
+   for cfg in configs:out.append(dict(cfg,**u,stage=stage))
+ return out
+def prediction(model,d):
+ qs=[];costs=[]
+ with torch.no_grad():
+  for i in range(0,len(d['x']),128):
+   z=model.raw(torch.from_numpy(d['x'][i:i+128]));qs.append(z.sigmoid().numpy());costs.append(model.decode(z).numpy())
+ return np.concatenate(costs).astype(np.float32),np.concatenate(qs).astype(np.float32)
+def metrics(model,d):
+ c,q=prediction(model,d);m=B.metrics(c,d);t=(d['labels'][...,None]>np.arange(d['K']-1)).astype(float);e=q.astype(float)-t
+ m['threshold_brier']=float(np.mean(e**2));m['decoded_normalized_mse']=float(np.mean(e.mean(-1)**2));m['residual_variance']=float(np.mean((e-e.mean(-1,keepdims=True))**2))
+ m['crossing_rate']=float(np.mean(np.any(np.diff(q,axis=-1)>0,axis=-1))) if q.shape[-1]>1 else 0.
+ m['saturation_rate']=float(np.mean((q<.01)|(q>.99)));m['wrong_saturation_rate']=float(np.mean(((q<.01)&(t==1))|((q>.99)&(t==0))))
+ m['sigmoid_derivative_mean']=float(np.mean(q*(1-q)))
+ return m
+def gradients(model,t,ix,cfg):
+ """Fixed training probe, diagnostics only; no optimizer or RNG changes."""
+ z=model.raw(t['x'][ix]);pred=model.decode(z);loss=B.objective(z,pred,t,ix,cfg)
+ pars=list(model.parameters());gg=torch.autograd.grad(loss,[z]+pars,retain_graph=False,allow_unused=True)
+ norms={}
+ for group in ['trunk','head']:
+  v=[g.square().sum() for (n,_),g in zip(model.named_parameters(),gg[1:]) if n.startswith(group) and g is not None]
+  norms[group+'_grad_norm']=float(torch.sqrt(sum(v))) if v else 0.
+ norms['logit_grad_norm']=float(gg[0].norm());return norms
+def cpu_state(m):return {k:v.detach().clone() for k,v in m.state_dict().items()}
+def save_state(folder,state):
+ name=f"state-{state['step']:06d}-{uuid.uuid4().hex[:10]}.pt";path=folder/name
+ tmp=path.with_suffix('.tmp');torch.save(state,tmp);tmp.replace(path)
+ rec={'name':name,'sha256':sha(path),'step':state['step']};write(folder/'checkpoint.json',rec)
+ others=sorted(folder.glob('state-*.pt'),key=lambda p:p.stat().st_mtime,reverse=True)
+ for old in others[2:]:old.unlink()
+ return rec
+def load_state(folder,rec):
+ path=folder/rec['name']
+ if path.parent.resolve()!=folder.resolve() or sha(path)!=rec['sha256']:raise RuntimeError('Checkpoint integrity error')
+ return torch.load(path,map_location='cpu',weights_only=True)
+def completed(w,cfg):
+ folder=Path(w)/'runs'/cfg['stage']/identity(cfg)[:20];r=read(folder/'result.json')
+ if r['config']!=cfg or r['freeze_sha256']!=sha(Path(w)/'freeze.json') or r['status']!='complete':raise RuntimeError('Completion identity invalid')
+ path=folder/r['checkpoint']['name']
+ if path.parent.resolve()!=folder.resolve() or sha(path)!=r['checkpoint']['sha256']:raise RuntimeError('Completed state corrupted')
+ return r
+
+def trial(w,cfg,stop_after=None,qa=False,override_dir=None):
+ w=Path(w);p=read(w/'protocol.json') if qa else verify(w)
+ if not qa and cfg not in jobs(w,cfg['stage'],p):raise RuntimeError('Unregistered training job')
+ folder=(Path(override_dir) if override_dir else w/'runs'/cfg['stage']/identity(cfg)[:20]);folder.mkdir(parents=True,exist_ok=True)
+ freeze_hash='QA' if qa else sha(w/'freeze.json')
+ if (folder/'result.json').exists():
+  if not qa:return completed(w,cfg)
+  old=read(folder/'result.json')
+  if old['config']!=cfg or old['freeze_sha256']!='QA':raise RuntimeError('QA completion changed')
+  load_state(folder,old['checkpoint']);return old
+ tr=data(cfg['task'],cfg['data_seed'],'train');va=data(cfg['task'],cfg['data_seed'],'val');t=B.tensors(tr)
+ model=B.CostModel(tr,cfg['method'],cfg['model_seed']);opt=torch.optim.Adam(model.parameters(),lr=cfg['lr'],weight_decay=cfg['wd'])
+ bs=16 if cfg['task']=='digits_route4' else 32
+ batches=np.random.default_rng(np.random.SeedSequence([cfg['model_seed'],105])).integers(0,len(tr['x']),(cfg['steps'],bs))
+ step=0;curves=[];history=[];best=None;best_model=None;snapshots={};elapsed=0.
+ if (folder/'checkpoint.json').exists():
+  rec=read(folder/'checkpoint.json');s=load_state(folder,rec)
+  if s['config']!=cfg or s['freeze_sha256']!=freeze_hash:raise RuntimeError('Resume identity changed')
+  model.load_state_dict(s['model']);opt.load_state_dict(s['optimizer']);torch.set_rng_state(s['rng']);step=s['step'];curves=s['curves'];history=s['history'];best=s['best'];best_model=s['best_model'];snapshots=s['snapshots'];elapsed=s['active_seconds']
+  if len(history)!=step:raise RuntimeError('Resume history invalid')
+ started=time.perf_counter();session=None if qa else read(w/'SESSION.json')
+ def payload():return dict(config=cfg,freeze_sha256=freeze_hash,step=step,model=cpu_state(model),optimizer=opt.state_dict(),rng=torch.get_rng_state(),history=history,curves=curves,best=best,best_model=best_model,snapshots=snapshots,active_seconds=elapsed+time.perf_counter()-started)
+ def paused():return (w/'PAUSE').exists() or (not qa and (time.time()>=session['deadline'] or not alive(session['controller_pid'])))
+ checksteps=set(p['validation_steps']);eligible=set(p['selection_steps']);fixed=set(p['fixed_checkpoints'])
+ try:
+  while step<cfg['steps']:
+   if paused():save_state(folder,payload());return dict(status='paused',config=cfg,step=step)
+   ix=batches[step];opt.zero_grad(set_to_none=True);z=model.raw(t['x'][ix]);pred=model.decode(z);loss=B.objective(z,pred,t,ix,cfg)
+   if not torch.isfinite(loss):raise FloatingPointError('Nonfinite loss')
+   loss.backward()
+   if any(not torch.isfinite(v.grad).all() for v in model.parameters() if v.grad is not None):raise FloatingPointError('Nonfinite gradients')
+   opt.step();history.append(float(loss.detach()));step+=1
+   if step in checksteps:
+    vm=metrics(model,va);tm=metrics(model,tr);probe=np.arange(min(32,len(tr['x'])))
+    curves.append(dict(step=step,train=tm,validation=vm,gradient=gradients(model,t,probe,cfg)))
+    key=(vm['all']['errors'],vm['all']['regret'],step)
+    if step in eligible and (best is None or key<(best['metrics']['all']['errors'],best['metrics']['all']['regret'],best['step'])):best=dict(step=step,metrics=vm);best_model=cpu_state(model)
+   if step in fixed:snapshots[str(step)]=cpu_state(model)
+   if step%p['checkpoint_every']==0 or step==stop_after:
+    save_state(folder,payload())
+    if step==stop_after:return dict(status='paused',config=cfg,step=step)
+ except FloatingPointError as e:
+  save_state(folder,payload());write(folder/'failure.json',dict(config=cfg,step=step,error=str(e),history_tail=history[-5:]));raise
+ if best is None:raise RuntimeError('No eligible checkpoint')
+ rec=save_state(folder,payload());r=dict(status='complete',config=cfg,freeze_sha256=freeze_hash,checkpoint=rec,steps=step,best=best,curves=curves,active_seconds=payload()['active_seconds'],data_hashes={'train':tr['hash'],'val':va['hash']},parameter_count=sum(p.numel() for p in model.parameters()))
+ immutable(folder/'result.json',r);return r
+
+def evaluate(w,cfg):
+ w=Path(w);r=completed(w,cfg);folder=w/'runs/confirmation'/identity(cfg)[:20]
+ binding={'result_sha256':sha(folder/'result.json'),'test_gate_sha256':sha(w/'test_gate.json')}
+ if (folder/'evaluation.json').exists():
+  old=read(folder/'evaluation.json')
+  if old['binding']!=binding or sha(folder/'evaluation.npz')!=old['arrays_sha256']:raise RuntimeError('Evaluation drift')
+  return old
+ ev=gated_data(w,cfg,'eval');s=load_state(folder,r['checkpoint']);model=B.CostModel(ev,cfg['method'],cfg['model_seed'])
+ arr={'costs':ev['costs'],'paths':ev['paths'],'face':ev['face']};out={}
+ for label,weights in [('selected',s['best_model'])]+list(s['snapshots'].items()):
+  model.load_state_dict(weights);pred,q=prediction(model,ev);arr[label+'_pred']=pred;arr[label+'_prob']=q;out[label]=B.metrics(pred,ev)
+ tmp=folder/'evaluation.tmp.npz';np.savez_compressed(tmp,**arr);tmp.replace(folder/'evaluation.npz')
+ rec=dict(config=cfg,binding=binding,data_hash=ev['hash'],selected_step=r['best']['step'],metrics=out,arrays_sha256=sha(folder/'evaluation.npz'));immutable(folder/'evaluation.json',rec);return rec

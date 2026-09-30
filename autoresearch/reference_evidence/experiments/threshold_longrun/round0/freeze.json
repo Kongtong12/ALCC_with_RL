@@ -1,0 +1,13 @@
+{
+  "protocol_sha256": "d1034e929c0cee79f17a720cee1c8946f94cf6e6d0732d9d92f084bd6882e8c4",
+  "sources": {
+    "core.py": "858673e6caeb5723e080d8bdede41c0f641e5ada5a575494b8b921adfdf18577",
+    "run.py": "48ff52881e4e9b8a1eb895f72408547cda63db7e79965f3a8fc0ce779ef1ad7f",
+    "analyze.py": "a1bd125e091d32f121c5f4ed15831313c55636a29be364d34e939e3e9214ee1c",
+    "code/base.py": "be26d1e27418d0cae9a09ca7adff0bd5fd1e5019e249d26248f838fac00af1ab",
+    "data/digits_source.npz": "85de14e70e2d4537424780587aaba4e7a79f2d59c42e72f3940e04295d701a51"
+  },
+  "calibration_sha256": "6e39d76f990faf56c1492e2a6ffe22e50dcfb1e8f3ee857966fa1af3e03530ec",
+  "qa_sha256": "a8a66bd266aecbcf027f568da902108c57846f5e9e0a3ca60a9b69a9eadb522a",
+  "created_unix": 1789523530.6011522
+}

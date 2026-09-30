@@ -1,0 +1,1478 @@
+{
+  "study_id": "THRESHOLD-LONGRUN-20260916-R0",
+  "round": 0,
+  "tasks": [
+    "relu32",
+    "quadratic",
+    "digits_route4"
+  ],
+  "methods": [
+    "ordinal",
+    "brier",
+    "bounded_mse"
+  ],
+  "configs": {
+    "relu32": [
+      {
+        "task": "relu32",
+        "method": "ordinal",
+        "lr": 0.0001,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "ordinal",
+        "lr": 0.0001,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "ordinal",
+        "lr": 0.0001,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "ordinal",
+        "lr": 0.0005,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "ordinal",
+        "lr": 0.0005,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "ordinal",
+        "lr": 0.0005,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "ordinal",
+        "lr": 0.002,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "ordinal",
+        "lr": 0.002,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "ordinal",
+        "lr": 0.002,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "ordinal",
+        "lr": 0.006,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "ordinal",
+        "lr": 0.006,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "ordinal",
+        "lr": 0.006,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "ordinal",
+        "lr": 0.02,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "ordinal",
+        "lr": 0.02,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "ordinal",
+        "lr": 0.02,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "ordinal",
+        "lr": 0.06,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "ordinal",
+        "lr": 0.06,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "ordinal",
+        "lr": 0.06,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "brier",
+        "lr": 0.0001,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "brier",
+        "lr": 0.0001,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "brier",
+        "lr": 0.0001,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "brier",
+        "lr": 0.0005,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "brier",
+        "lr": 0.0005,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "brier",
+        "lr": 0.0005,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "brier",
+        "lr": 0.002,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "brier",
+        "lr": 0.002,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "brier",
+        "lr": 0.002,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "brier",
+        "lr": 0.006,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "brier",
+        "lr": 0.006,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "brier",
+        "lr": 0.006,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "brier",
+        "lr": 0.02,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "brier",
+        "lr": 0.02,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "brier",
+        "lr": 0.02,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "brier",
+        "lr": 0.06,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "brier",
+        "lr": 0.06,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "brier",
+        "lr": 0.06,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "bounded_mse",
+        "lr": 0.0001,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "bounded_mse",
+        "lr": 0.0001,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "bounded_mse",
+        "lr": 0.0001,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "bounded_mse",
+        "lr": 0.0005,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "bounded_mse",
+        "lr": 0.0005,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "bounded_mse",
+        "lr": 0.0005,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "bounded_mse",
+        "lr": 0.002,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "bounded_mse",
+        "lr": 0.002,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "bounded_mse",
+        "lr": 0.002,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "bounded_mse",
+        "lr": 0.006,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "bounded_mse",
+        "lr": 0.006,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "bounded_mse",
+        "lr": 0.006,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "bounded_mse",
+        "lr": 0.02,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "bounded_mse",
+        "lr": 0.02,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "bounded_mse",
+        "lr": 0.02,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "bounded_mse",
+        "lr": 0.06,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "bounded_mse",
+        "lr": 0.06,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "relu32",
+        "method": "bounded_mse",
+        "lr": 0.06,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      }
+    ],
+    "quadratic": [
+      {
+        "task": "quadratic",
+        "method": "ordinal",
+        "lr": 0.0001,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "ordinal",
+        "lr": 0.0001,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "ordinal",
+        "lr": 0.0001,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "ordinal",
+        "lr": 0.0005,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "ordinal",
+        "lr": 0.0005,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "ordinal",
+        "lr": 0.0005,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "ordinal",
+        "lr": 0.002,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "ordinal",
+        "lr": 0.002,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "ordinal",
+        "lr": 0.002,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "ordinal",
+        "lr": 0.006,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "ordinal",
+        "lr": 0.006,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "ordinal",
+        "lr": 0.006,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "ordinal",
+        "lr": 0.02,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "ordinal",
+        "lr": 0.02,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "ordinal",
+        "lr": 0.02,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "ordinal",
+        "lr": 0.06,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "ordinal",
+        "lr": 0.06,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "ordinal",
+        "lr": 0.06,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "brier",
+        "lr": 0.0001,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "brier",
+        "lr": 0.0001,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "brier",
+        "lr": 0.0001,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "brier",
+        "lr": 0.0005,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "brier",
+        "lr": 0.0005,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "brier",
+        "lr": 0.0005,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "brier",
+        "lr": 0.002,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "brier",
+        "lr": 0.002,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "brier",
+        "lr": 0.002,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "brier",
+        "lr": 0.006,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "brier",
+        "lr": 0.006,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "brier",
+        "lr": 0.006,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "brier",
+        "lr": 0.02,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "brier",
+        "lr": 0.02,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "brier",
+        "lr": 0.02,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "brier",
+        "lr": 0.06,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "brier",
+        "lr": 0.06,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "brier",
+        "lr": 0.06,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "bounded_mse",
+        "lr": 0.0001,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "bounded_mse",
+        "lr": 0.0001,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "bounded_mse",
+        "lr": 0.0001,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "bounded_mse",
+        "lr": 0.0005,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "bounded_mse",
+        "lr": 0.0005,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "bounded_mse",
+        "lr": 0.0005,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "bounded_mse",
+        "lr": 0.002,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "bounded_mse",
+        "lr": 0.002,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "bounded_mse",
+        "lr": 0.002,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "bounded_mse",
+        "lr": 0.006,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "bounded_mse",
+        "lr": 0.006,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "bounded_mse",
+        "lr": 0.006,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "bounded_mse",
+        "lr": 0.02,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "bounded_mse",
+        "lr": 0.02,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "bounded_mse",
+        "lr": 0.02,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "bounded_mse",
+        "lr": 0.06,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "bounded_mse",
+        "lr": 0.06,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "quadratic",
+        "method": "bounded_mse",
+        "lr": 0.06,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      }
+    ],
+    "digits_route4": [
+      {
+        "task": "digits_route4",
+        "method": "ordinal",
+        "lr": 0.0001,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "ordinal",
+        "lr": 0.0001,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "ordinal",
+        "lr": 0.0001,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "ordinal",
+        "lr": 0.0005,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "ordinal",
+        "lr": 0.0005,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "ordinal",
+        "lr": 0.0005,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "ordinal",
+        "lr": 0.002,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "ordinal",
+        "lr": 0.002,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "ordinal",
+        "lr": 0.002,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "ordinal",
+        "lr": 0.006,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "ordinal",
+        "lr": 0.006,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "ordinal",
+        "lr": 0.006,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "ordinal",
+        "lr": 0.02,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "ordinal",
+        "lr": 0.02,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "ordinal",
+        "lr": 0.02,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "ordinal",
+        "lr": 0.06,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "ordinal",
+        "lr": 0.06,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "ordinal",
+        "lr": 0.06,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "brier",
+        "lr": 0.0001,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "brier",
+        "lr": 0.0001,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "brier",
+        "lr": 0.0001,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "brier",
+        "lr": 0.0005,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "brier",
+        "lr": 0.0005,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "brier",
+        "lr": 0.0005,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "brier",
+        "lr": 0.002,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "brier",
+        "lr": 0.002,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "brier",
+        "lr": 0.002,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "brier",
+        "lr": 0.006,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "brier",
+        "lr": 0.006,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "brier",
+        "lr": 0.006,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "brier",
+        "lr": 0.02,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "brier",
+        "lr": 0.02,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "brier",
+        "lr": 0.02,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "brier",
+        "lr": 0.06,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "brier",
+        "lr": 0.06,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "brier",
+        "lr": 0.06,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "bounded_mse",
+        "lr": 0.0001,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "bounded_mse",
+        "lr": 0.0001,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "bounded_mse",
+        "lr": 0.0001,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "bounded_mse",
+        "lr": 0.0005,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "bounded_mse",
+        "lr": 0.0005,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "bounded_mse",
+        "lr": 0.0005,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "bounded_mse",
+        "lr": 0.002,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "bounded_mse",
+        "lr": 0.002,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "bounded_mse",
+        "lr": 0.002,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "bounded_mse",
+        "lr": 0.006,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "bounded_mse",
+        "lr": 0.006,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "bounded_mse",
+        "lr": 0.006,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "bounded_mse",
+        "lr": 0.02,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "bounded_mse",
+        "lr": 0.02,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "bounded_mse",
+        "lr": 0.02,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "bounded_mse",
+        "lr": 0.06,
+        "wd": 0.0,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "bounded_mse",
+        "lr": 0.06,
+        "wd": 0.0001,
+        "aux": 1.0,
+        "steps": 6000
+      },
+      {
+        "task": "digits_route4",
+        "method": "bounded_mse",
+        "lr": 0.06,
+        "wd": 0.001,
+        "aux": 1.0,
+        "steps": 6000
+      }
+    ]
+  },
+  "data_seeds": {
+    "development": {
+      "relu32": [
+        9461001,
+        9461002,
+        9461003
+      ],
+      "quadratic": [
+        9461101,
+        9461102,
+        9461103
+      ],
+      "digits_route4": [
+        9461201,
+        9461202,
+        9461203
+      ]
+    },
+    "confirmation": {
+      "relu32": [
+        9462001,
+        9462002,
+        9462003,
+        9462004,
+        9462005,
+        9462006,
+        9462007,
+        9462008,
+        9462009,
+        9462010
+      ],
+      "quadratic": [
+        9462101,
+        9462102,
+        9462103,
+        9462104,
+        9462105,
+        9462106,
+        9462107,
+        9462108,
+        9462109,
+        9462110
+      ],
+      "digits_route4": [
+        9462201,
+        9462202,
+        9462203,
+        9462204,
+        9462205,
+        9462206,
+        9462207,
+        9462208,
+        9462209,
+        9462210
+      ]
+    }
+  },
+  "validation_steps": [
+    100,
+    300,
+    600,
+    900,
+    1200,
+    1500,
+    1800,
+    2100,
+    2400,
+    2700,
+    3000,
+    3300,
+    3600,
+    3900,
+    4200,
+    4500,
+    4800,
+    5100,
+    5400,
+    5700,
+    6000
+  ],
+  "selection_steps": [
+    600,
+    900,
+    1200,
+    1500,
+    1800,
+    2100,
+    2400,
+    2700,
+    3000,
+    3300,
+    3600,
+    3900,
+    4200,
+    4500,
+    4800,
+    5100,
+    5400,
+    5700,
+    6000
+  ],
+  "fixed_checkpoints": [
+    600,
+    1200,
+    3000,
+    6000
+  ],
+  "checkpoint_every": 100,
+  "optimizer": "Adam, constant selected learning rate, no scheduler",
+  "primary": "all-context nonoptimal rate at validation-selected checkpoint; original tied endpoint remains secondary",
+  "selection": "per-run min(validation all-context error, regret, earliest step); per-method equal-data-unit mean(error,regret), lower lr then lower wd; no test access",
+  "design": "Same inherited 8/64-input -> 64 -> 64 cumulative model; same initialization, batch stream, 6000 updates, candidate count and data within matched runs",
+  "digit_partitions": "Fresh independent random source-identity partitions of the same public 1797-image pool:1078/359/360; fresh boards1024/256/1024; two optimizer seeds per partition; inference conditional on this image pool",
+  "development_replicates": "3 independent synthetic teachers per task; 3 digit partitions x 2 optimization seeds",
+  "confirmation_replicates": "10 independent synthetic teachers per task; 10 digit partitions x 2 optimization seeds",
+  "statistics": {
+    "unit": "synthetic data/teacher seed; digit partition mean over two paired optimizer seeds",
+    "pairs": [
+      [
+        "ordinal",
+        "brier"
+      ],
+      [
+        "ordinal",
+        "bounded_mse"
+      ],
+      [
+        "brier",
+        "bounded_mse"
+      ]
+    ],
+    "family_size": 9,
+    "holm_alpha": 0.025,
+    "reason": "Campaign allocation: round0 .025; adaptive confirmations round r receive .05/2**(r+1), without recycling failures",
+    "signflip": "two-sided exact enumeration on paired integer fractions, inclusive tails; requires paired sign symmetry",
+    "bootstrap": 20000,
+    "seed": 9469001,
+    "ci": "marginal seed/partition bootstrap 95%; not simultaneous"
+  },
+  "strong_advantage": "BCE vs both matched controls: >=1 percentage point and >=10% relative error reduction on at least two tasks, Holm p < .025; no >1pp adverse difference on remaining task; no mean-regret increase in tasks claimed. Otherwise report limited, not strong, evidence.",
+  "diagnostics": [
+    "train/validation learning curves",
+    "fixed-step test outcomes600/1200/3000/6000 secondary; not used for selection",
+    "train/validation gaps",
+    "gradient norms trunk/head/logits",
+    "sigmoid saturation and wrong saturated labels",
+    "threshold crossings",
+    "residual variance identity",
+    "all/tied/unique errors",
+    "time"
+  ],
+  "engineering": {
+    "workers": 4,
+    "threads_per_worker": 1,
+    "occupied_seconds_cap": 14400,
+    "calibration_safety_factor": 1.5,
+    "pause": "PAUSE file or Ctrl+C; checkpoints100updates; exact model/Adam/RNG/snapshots/curves restored",
+    "crash": "parent death checked by workers; conservative occupied time charge; reject corrupt current checkpoint; no silent fallback"
+  },
+  "research": "Round0 fixed baseline. Later candidates selected using development data only, independently frozen; never overwrite old losses/protocol/results. All failures retained. No guaranteed favorable outcome; no test-selected stopping or seed replacement."
+}

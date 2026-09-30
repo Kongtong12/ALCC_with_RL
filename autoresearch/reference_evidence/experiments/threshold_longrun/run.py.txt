@@ -1,0 +1,181 @@
+"""Isolated, interruptible round controller. Never edits earlier frozen studies."""
+import os
+for k in ['OMP_NUM_THREADS','MKL_NUM_THREADS','OPENBLAS_NUM_THREADS']:os.environ[k]='1'
+import sys,time,json,argparse,traceback,concurrent.futures,statistics,signal
+from contextlib import contextmanager
+from pathlib import Path
+import core as C
+ROOT=C.ROOT
+
+def protocol():
+ tasks=['relu32','quadratic','digits_route4'];methods=['ordinal','brier','bounded_mse']
+ return dict(study_id='THRESHOLD-LONGRUN-20260916-R0',round=0,tasks=tasks,methods=methods,
+  configs={t:[dict(task=t,method=m,lr=lr,wd=wd,aux=1.,steps=6000) for m in methods for lr in [.0001,.0005,.002,.006,.02,.06] for wd in [0.,.0001,.001]] for t in tasks},
+  data_seeds={stage:{t:list(range(start+100*i,start+100*i+n)) for i,t in enumerate(tasks)} for stage,start,n in [('development',9461001,3),('confirmation',9462001,10)]},
+  validation_steps=[100,300]+list(range(600,6001,300)),selection_steps=list(range(600,6001,300)),fixed_checkpoints=[600,1200,3000,6000],checkpoint_every=100,
+  optimizer='Adam, constant selected learning rate, no scheduler',primary='all-context nonoptimal rate at validation-selected checkpoint; original tied endpoint remains secondary',
+  selection='per-run min(validation all-context error, regret, earliest step); per-method equal-data-unit mean(error,regret), lower lr then lower wd; no test access',
+  design='Same inherited 8/64-input -> 64 -> 64 cumulative model; same initialization, batch stream, 6000 updates, candidate count and data within matched runs',
+  digit_partitions='Fresh independent random source-identity partitions of the same public 1797-image pool:1078/359/360; fresh boards1024/256/1024; two optimizer seeds per partition; inference conditional on this image pool',
+  development_replicates='3 independent synthetic teachers per task; 3 digit partitions x 2 optimization seeds',confirmation_replicates='10 independent synthetic teachers per task; 10 digit partitions x 2 optimization seeds',
+  statistics=dict(unit='synthetic data/teacher seed; digit partition mean over two paired optimizer seeds',pairs=[['ordinal','brier'],['ordinal','bounded_mse'],['brier','bounded_mse']],family_size=9,holm_alpha=.025,reason='Campaign allocation: round0 .025; adaptive confirmations round r receive .05/2**(r+1), without recycling failures',signflip='two-sided exact enumeration on paired integer fractions, inclusive tails; requires paired sign symmetry',bootstrap=20000,seed=9469001,ci='marginal seed/partition bootstrap 95%; not simultaneous'),
+  strong_advantage='BCE vs both matched controls: >=1 percentage point and >=10% relative error reduction on at least two tasks, Holm p < .025; no >1pp adverse difference on remaining task; no mean-regret increase in tasks claimed. Otherwise report limited, not strong, evidence.',
+  diagnostics=['train/validation learning curves','fixed-step test outcomes600/1200/3000/6000 secondary; not used for selection','train/validation gaps','gradient norms trunk/head/logits','sigmoid saturation and wrong saturated labels','threshold crossings','residual variance identity','all/tied/unique errors','time'],
+  engineering=dict(workers=4,threads_per_worker=1,occupied_seconds_cap=14400,calibration_safety_factor=1.5,pause='PAUSE file or Ctrl+C; checkpoints100updates; exact model/Adam/RNG/snapshots/curves restored',crash='parent death checked by workers; conservative occupied time charge; reject corrupt current checkpoint; no silent fallback'),
+  research='Round0 fixed baseline. Later candidates selected using development data only, independently frozen; never overwrite old losses/protocol/results. All failures retained. No guaranteed favorable outcome; no test-selected stopping or seed replacement.')
+
+def init(w):
+ w.mkdir(parents=True,exist_ok=True)
+ if (w/'protocol.json').exists():raise RuntimeError('Workspace exists; use resume')
+ C.write(w/'protocol.json',protocol());C.write(w/'BUDGET.json',{'active_seconds':0.,'limit_seconds':14400})
+ print('Draft protocol written; calibration and QA required before freeze.')
+def calibration(w):
+ p=C.read(w/'protocol.json');rows=[]
+ for task in p['tasks']:
+  cfg=dict(task=task,method='ordinal',lr=.002,wd=.0001,aux=1.,steps=6000,data_seed=9469901,model_seed=10469901,unit=0,repeat=0,stage='calibration')
+  start=time.perf_counter();r=C.trial(w,cfg,qa=True,override_dir=w/'calibration'/task)
+  rows.append(dict(task=task,wall_seconds=max(time.perf_counter()-start,r['active_seconds']),steps=r['steps']))
+  print('Calibration',task,round(rows[-1]['wall_seconds'],2),'seconds',flush=True)
+ # Equal-sized per-method workloads; full checkpoint/validation overhead measured.
+ estimate=0.;jobs0=C.jobs(w,'development',p)
+ for row in rows:
+  task=row['task'];n=sum(c['task']==task for c in jobs0)+len(C.units(p,task,'confirmation'))*len(p['methods'])
+  estimate+=row['wall_seconds']*n/p['engineering']['workers']
+ estimate*=p['engineering']['calibration_safety_factor']
+ rec=dict(rows=rows,projected_wall_seconds=estimate,cap=p['engineering']['occupied_seconds_cap'],gate='PASS' if estimate<=p['engineering']['occupied_seconds_cap'] else 'STOP',protocol_sha256=C.sha(w/'protocol.json'),source_hashes=C.sources(),predictive_metrics_not_used=True)
+ C.write(w/'calibration.json',rec)
+ b=C.read(w/'BUDGET.json');b['active_seconds']+=sum(r['wall_seconds'] for r in rows);C.write(w/'BUDGET.json',b)
+ print(json.dumps(rec))
+def freeze(w):
+ c=C.read(w/'calibration.json');q=C.read(w/'QA.json')
+ if c['gate']!='PASS' or c['protocol_sha256']!=C.sha(w/'protocol.json') or c['source_hashes']!=C.sources() or q['status']!='passed' or q['source_hashes']!=C.sources():raise RuntimeError('Calibration/QA gate failed or stale')
+ C.immutable(w/'freeze.json',dict(protocol_sha256=C.sha(w/'protocol.json'),sources=C.sources(),calibration_sha256=C.sha(w/'calibration.json'),qa_sha256=C.sha(w/'QA.json'),created_unix=time.time()))
+ print('Frozen',C.sha(w/'freeze.json'))
+def selected(w):
+ p=C.verify(w);rows=[C.completed(w,c) for c in C.jobs(w,'development',p)]
+ chosen={t:{} for t in p['tasks']};candidates=[]
+ for task in p['tasks']:
+  for cfg in p['configs'][task]:
+   rr=[r for r in rows if all(r['config'][k]==v for k,v in cfg.items())]
+   if len(rr)!=len(C.units(p,task,'development')):raise RuntimeError('Incomplete development matrix')
+   vals=[]
+   for seed in p['data_seeds']['development'][task]:
+    u=[r for r in rr if r['config']['data_seed']==seed]
+    vals.append((statistics.mean(x['best']['metrics']['all']['error'] for x in u),statistics.mean(x['best']['metrics']['all']['regret'] for x in u)))
+   candidates.append(dict(config=cfg,error=statistics.mean(x[0] for x in vals),regret=statistics.mean(x[1] for x in vals)))
+  for method in p['methods']:
+   cc=[x for x in candidates if x['config']['task']==task and x['config']['method']==method]
+   chosen[task][method]=min(cc,key=lambda x:(x['error'],x['regret'],x['config']['lr'],x['config']['wd']))['config']
+ result=dict(chosen=chosen,candidates=candidates,freeze_sha256=C.sha(w/'freeze.json'),development_receipts={C.identity(c)[:20]:C.sha(w/'runs/development'/C.identity(c)[:20]/'result.json') for c in C.jobs(w,'development',p)})
+ C.immutable(w/'selection.json',result);seal=w/'selection.sha256'
+ if seal.exists() and seal.read_text().strip()!=C.sha(w/'selection.json'):raise RuntimeError('Selection drift')
+ seal.write_text(C.sha(w/'selection.json')+'\n');print('Selection sealed',chosen,flush=True)
+def worker(w,cfg):
+ signal.signal(signal.SIGINT,signal.SIG_IGN)
+ w=Path(w);lease=w/'workers'/f'{os.getpid()}.json';C.write(lease,{'pid':os.getpid(),'config':cfg})
+ try:return C.trial(w,cfg)
+ except Exception:return dict(status='failed',config=cfg,traceback=traceback.format_exc())
+ finally:lease.unlink(missing_ok=True)
+def sweep(w,stage):
+ p=C.verify(w);jobs=C.jobs(w,stage,p);pending=[]
+ for cfg in jobs:
+  if (w/'runs'/stage/C.identity(cfg)[:20]/'result.json').exists():C.completed(w,cfg)
+  else:pending.append(cfg)
+ completed=len(jobs)-len(pending);iterator=iter(pending);stop=False
+ with concurrent.futures.ProcessPoolExecutor(max_workers=p['engineering']['workers']) as pool:
+  futures={}
+  for _ in range(p['engineering']['workers']):
+   cfg=next(iterator,None)
+   if cfg is not None:futures[pool.submit(worker,str(w),cfg)]=cfg
+  while futures:
+   done,_=concurrent.futures.wait(futures,timeout=1,return_when=concurrent.futures.FIRST_COMPLETED)
+   if (w/'PAUSE').exists() or time.time()>=C.read(w/'SESSION.json')['deadline']:stop=True;(w/'PAUSE').touch()
+   for future in done:
+    cfg=futures.pop(future);row=future.result()
+    with (w/'events.jsonl').open('a',encoding='utf-8') as f:f.write(json.dumps({k:v for k,v in row.items() if k in ['status','config','step','traceback']})+'\n')
+    if row['status']=='complete':completed+=1
+    else:
+     stop=True;(w/'PAUSE').touch()
+     if row['status']=='failed':C.write(w/'failures'/f'{time.time_ns()}.json',row)
+    if not stop:
+     cfg=next(iterator,None)
+     if cfg is not None:futures[pool.submit(worker,str(w),cfg)]=cfg
+   s=C.read(w/'SESSION.json');used=s['base_active_seconds']+time.time()-s['started']
+   C.write(w/'STATUS.json',dict(stage=stage,complete=completed,total=len(jobs),status='pausing' if stop else 'running',active_seconds=used))
+   if done and (completed%20==0 or stop):print(stage,completed,'/',len(jobs),'seconds',round(used),flush=True)
+ return completed==len(jobs) and not stop
+def reveal(w):
+ p=C.verify(w);C.jobs(w,'confirmation',p)
+ receipts={}
+ for stage in ['development','confirmation']:
+  for cfg in C.jobs(w,stage,p):
+   C.completed(w,cfg);rel='runs/'+stage+'/'+C.identity(cfg)[:20]+'/result.json';receipts[rel]=C.sha(w/rel)
+ C.immutable(w/'test_gate.json',dict(freeze_sha256=C.sha(w/'freeze.json'),selection_sha256=C.sha(w/'selection.json'),receipts=receipts))
+ for i,cfg in enumerate(C.jobs(w,'confirmation',p)):
+  if (w/'PAUSE').exists() or time.time()>=C.read(w/'SESSION.json')['deadline']:return False
+  C.evaluate(w,cfg)
+  if (i+1)%20==0:print('evaluate',i+1,flush=True)
+ return True
+@contextmanager
+def controller_lock(w):
+ f=(w/'CONTROLLER.lock').open('a+b');f.seek(0);f.write(b'0');f.flush();f.seek(0)
+ try:
+  if os.name=='nt':
+   import msvcrt;msvcrt.locking(f.fileno(),msvcrt.LK_NBLCK,1)
+  else:
+   import fcntl;fcntl.flock(f,fcntl.LOCK_EX|fcntl.LOCK_NB)
+ except Exception:f.close();raise RuntimeError('Controller lock is occupied')
+ try:yield
+ finally:
+  f.seek(0)
+  if os.name=='nt':msvcrt.locking(f.fileno(),msvcrt.LK_UNLCK,1)
+  else:fcntl.flock(f,fcntl.LOCK_UN)
+  f.close()
+def session(w,action):
+ with controller_lock(w):return _session(w,action)
+def _session(w,action):
+ p=C.verify(w);lock=w/'CONTROLLER.json'
+ if lock.exists() and C.alive(C.read(lock)['pid']):raise RuntimeError('Controller already active')
+ for f in (w/'workers').glob('*.json'):
+  if C.alive(C.read(f)['pid']):raise RuntimeError('Previous worker still alive; pause and wait')
+ b=C.read(w/'BUDGET.json')
+ if (w/'SESSION.json').exists():
+  s=C.read(w/'SESSION.json')
+  if not s['closed']:
+   b['active_seconds']=max(b['active_seconds'],s['base_active_seconds']+max(0,min(time.time(),s['deadline'])-s['started']));C.write(w/'BUDGET.json',b)
+ if b['active_seconds']>=b['limit_seconds']:raise RuntimeError('Occupied-time budget reached')
+ if action=='resume':(w/'PAUSE').unlink(missing_ok=True)
+ if (w/'PAUSE').exists():print('Paused. Use explicit resume.');return
+ lock.unlink(missing_ok=True)
+ with lock.open('x') as f:json.dump({'pid':os.getpid()},f)
+ s=dict(controller_pid=os.getpid(),started=time.time(),base_active_seconds=b['active_seconds'],deadline=time.time()+b['limit_seconds']-b['active_seconds'],closed=False);C.write(w/'SESSION.json',s)
+ previous_handler=signal.signal(signal.SIGINT,lambda *_:(w/'PAUSE').touch())
+ try:
+  if action in ['all','resume','development']:
+   if not sweep(w,'development'):return
+   selected(w)
+   if action=='development':return
+  if action in ['all','resume','confirmation']:
+   if not sweep(w,'confirmation'):return
+  if action in ['all','resume','evaluate']:
+   if not reveal(w):return
+   import analyze
+   analyze.analyze(w);C.write(w/'STATUS.json',dict(stage='complete',status='complete',development_runs=len(C.jobs(w,'development',p)),confirmation_runs=len(C.jobs(w,'confirmation',p))))
+ except KeyboardInterrupt:
+  (w/'PAUSE').touch();print('Pause requested; workers save at safe boundaries.',flush=True)
+ finally:
+  signal.signal(signal.SIGINT,previous_handler)
+  b['active_seconds']=s['base_active_seconds']+time.time()-s['started'];C.write(w/'BUDGET.json',b);s['closed']=True;C.write(w/'SESSION.json',s);lock.unlink(missing_ok=True)
+
+def main():
+ a=argparse.ArgumentParser();a.add_argument('action',choices=['init','calibrate','freeze','all','resume','development','confirmation','evaluate','select','analyze','pause','status']);a.add_argument('--work',type=Path,default=ROOT/'round0');args=a.parse_args();w=args.work.resolve()
+ if args.action=='init':init(w)
+ elif args.action=='calibrate':calibration(w)
+ elif args.action=='freeze':freeze(w)
+ elif args.action=='pause':(w/'PAUSE').touch()
+ elif args.action=='status':print(json.dumps(C.read(w/'STATUS.json'),indent=2))
+ elif args.action=='select':selected(w)
+ elif args.action=='analyze':
+  import analyze;analyze.analyze(w)
+ else:session(w,args.action)
+if __name__=='__main__':main()

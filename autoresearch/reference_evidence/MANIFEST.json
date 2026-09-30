@@ -1,0 +1,200 @@
+{
+  "as_of": "2026-09-30",
+  "scope": "Static source and record inspection. No supplied code or training executed. These hashes identify ZIP bytes, not validation of historical frozen hashes.",
+  "archive": "ICLR27-LearningCost-main.zip",
+  "archive_sha256": "36c594cab78ef221d0e8584cf828049a8938c18c82c6bdbfa47e8b9b8774f8bd",
+  "files_in_archive": 24757,
+  "lfs_pointer_files": 13565,
+  "lfs_pointers_by_extension": {
+    ".npy": 13,
+    ".npz": 3535,
+    ".pdf": 72,
+    ".png": 120,
+    ".pt": 9820,
+    ".zip": 5
+  },
+  "unique_lfs_objects": 10739,
+  "unique_lfs_declared_bytes": 2953947084,
+  "evidence_files": [
+    {
+      "archive_member": "ICLR27-LearningCost-main/README.md",
+      "local_file": "README.md",
+      "bytes": 2004,
+      "sha256": "1d41a74ce42ca5059a67b62ff89c85d5ddae7779098ea3dde36b2967b1891423"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/START_HERE.md",
+      "local_file": "START_HERE.md",
+      "bytes": 6624,
+      "sha256": "63a57c42be7206654c5110c0f3fd5b205c2354be4093482dec1307bb69529dfd"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/QUICKSTART.md",
+      "local_file": "QUICKSTART.md",
+      "bytes": 2187,
+      "sha256": "5342d14daa4349a9389376e5f13375818faecaf87724405214783608b06c268a"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/R049_WEB_GPT_PRO_MASTER_PROMPT.md",
+      "local_file": "R049_WEB_GPT_PRO_MASTER_PROMPT.md",
+      "bytes": 16663,
+      "sha256": "86a6bb0de5566a0c02029cc52cafe7f78005b6bccc29942672922b792c252346"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/INDEPENDENT_ACCEPTANCE_REVIEW_20260917.md",
+      "local_file": "INDEPENDENT_ACCEPTANCE_REVIEW_20260917.md",
+      "bytes": 22821,
+      "sha256": "9b0267cecc443c78a665c076585fa303790a0e3921850e9a9f9566e69c0620e5"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/docs/reproducibility.md",
+      "local_file": "docs/reproducibility.md",
+      "bytes": 1654,
+      "sha256": "7dc587342197b60b886dd12b85c367b854f81ea9b85b72536c915233dd794e50"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/docs/handoff/R049_NEXT_SESSION_HANDOFF.md",
+      "local_file": "docs/handoff/R049_NEXT_SESSION_HANDOFF.md",
+      "bytes": 9397,
+      "sha256": "9b81d476dfdf842a0c5bd7a32786f110a0a59e28f68ffc4d256321b2b4692678"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/reviews/current/NEXT_SESSION_GPT_PRO_REVISION_PROMPT.md",
+      "local_file": "reviews/current/NEXT_SESSION_GPT_PRO_REVISION_PROMPT.md",
+      "bytes": 5798,
+      "sha256": "0012c8c63036d5e2e41cf6903e164a465a557532af132579208bdc4ecc955643"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/core.py",
+      "local_file": "experiments/threshold_longrun/core.py.txt",
+      "bytes": 12451,
+      "sha256": "858673e6caeb5723e080d8bdede41c0f641e5ada5a575494b8b921adfdf18577"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/run.py",
+      "local_file": "experiments/threshold_longrun/run.py.txt",
+      "bytes": 13307,
+      "sha256": "48ff52881e4e9b8a1eb895f72408547cda63db7e79965f3a8fc0ce779ef1ad7f"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/round0/protocol.json",
+      "local_file": "experiments/threshold_longrun/round0/protocol.json",
+      "bytes": 30641,
+      "sha256": "5fadd892b52ae02a6a2fbf62c5b1c0785710e9ce03555eb33721bb11a475e1e4"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/round0/freeze.json",
+      "local_file": "experiments/threshold_longrun/round0/freeze.json",
+      "bytes": 761,
+      "sha256": "32af1ed8d3309b6dd8e1fd739491d4d6e71a29ae6761c4d780dd103e5a1f99d2"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/warcraft_matched/run_pipeline.py",
+      "local_file": "experiments/warcraft_matched/run_pipeline.py.txt",
+      "bytes": 1146,
+      "sha256": "59ce5e114780ec20973fe3fe300a6ccc06c8b90464e979a62735b089c2c2f84a"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/scripts/package_autoresearch_review.py",
+      "local_file": "scripts/package_autoresearch_review.py.txt",
+      "bytes": 11885,
+      "sha256": "84f59bb021ea2ab5f25f9ff7037cb7e82c481a43448fcbefe12ced9cb1c9fca3"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/.github/workflows/quality.yml",
+      "local_file": ".github/workflows/quality.yml",
+      "bytes": 683,
+      "sha256": "4ff13a44dd76e150bd7bcd5110a94da84b341d64bbd757cec08ba5865cac57d4"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/research/CAMPAIGN.md",
+      "local_file": "experiments/threshold_longrun/research/CAMPAIGN.md",
+      "bytes": 8958,
+      "sha256": "5171be07c594304fa3d15115ac946826af190a5841370ab0aebe35188799303a"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/research/CAMPAIGN_CLOSURE.json",
+      "local_file": "experiments/threshold_longrun/research/CAMPAIGN_CLOSURE.json",
+      "bytes": 1253,
+      "sha256": "4a176f3f316e5b292ad73fe68910932c662b40ced2d7337c3c4458bbd1a142ab"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/research/AUTO_RESEARCH_REPORT_ZH.md",
+      "local_file": "experiments/threshold_longrun/research/AUTO_RESEARCH_REPORT_ZH.md",
+      "bytes": 5082,
+      "sha256": "5582a62a53d3310060f80bb838b84200af8b9222888c0b9301d5af02c97ef808"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/research/ROUND0_RESEARCH.md",
+      "local_file": "experiments/threshold_longrun/research/ROUND0_RESEARCH.md",
+      "bytes": 5652,
+      "sha256": "deae033a3587f78272a9cd0f3e20312a2941191a40e5a1941b5f1f8631f68b3a"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/research/ROUND0_RESULTS.md",
+      "local_file": "experiments/threshold_longrun/research/ROUND0_RESULTS.md",
+      "bytes": 4744,
+      "sha256": "023664267f0eab0559bb751d3443086794434a71915124f1dff62d3142431895"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/research/ROUND0_CLAIM_REVIEW.md",
+      "local_file": "experiments/threshold_longrun/research/ROUND0_CLAIM_REVIEW.md",
+      "bytes": 11361,
+      "sha256": "143d45464eed2fc0090466d6ae926f3dc0d80d4a4bcef169d8ee0691c6856772"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/research/SPO_SCREEN_RESEARCH.md",
+      "local_file": "experiments/threshold_longrun/research/SPO_SCREEN_RESEARCH.md",
+      "bytes": 4874,
+      "sha256": "b045e8b3a00238c18c9c86e98f59e5b2ee60ca46972780117b2e0e352a080fe4"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/research/SPO_SCREEN_RESULTS.md",
+      "local_file": "experiments/threshold_longrun/research/SPO_SCREEN_RESULTS.md",
+      "bytes": 3660,
+      "sha256": "c78c1e6f4e92fcb4b80b3e02ac87446ac7586a254fd10e4a42e486f04899eff1"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/research/SMOOTHING_RESULT_AND_EMA_REVIEW.md",
+      "local_file": "experiments/threshold_longrun/research/SMOOTHING_RESULT_AND_EMA_REVIEW.md",
+      "bytes": 8599,
+      "sha256": "72fec939d9580852f517901c453d8390b865ce1f663e92316b4ffb447980bb4b"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/research/EMA_RESULT_AND_NEXT_REVIEW.md",
+      "local_file": "experiments/threshold_longrun/research/EMA_RESULT_AND_NEXT_REVIEW.md",
+      "bytes": 8651,
+      "sha256": "2272fc273d86bd80505a199ee7d052afe0558a801f181af903b6df5ebb86ad9f"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/research/MEANBLEND_SCREEN_RESEARCH.md",
+      "local_file": "experiments/threshold_longrun/research/MEANBLEND_SCREEN_RESEARCH.md",
+      "bytes": 5760,
+      "sha256": "ca80d4f0a7e5604bb4b09b806ecb66003029c668c6b6eecd8bc210bdeacf4817"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/research/MEANBLEND_SCREEN_RESULTS.md",
+      "local_file": "experiments/threshold_longrun/research/MEANBLEND_SCREEN_RESULTS.md",
+      "bytes": 4940,
+      "sha256": "856cc7d00f4946054a338355edc3fb9ecb0bbe6aeb2f9c9b25cd704b91894bbf"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/research/MEANBLEND_RESULT_REVIEW.md",
+      "local_file": "experiments/threshold_longrun/research/MEANBLEND_RESULT_REVIEW.md",
+      "bytes": 6066,
+      "sha256": "c512d9186482ccd6c4c6f12b62097babd8786928f3e21a17e7955d1a4d3659e8"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/research/CAMPAIGN_REASSESSMENT_REVIEW.md",
+      "local_file": "experiments/threshold_longrun/research/CAMPAIGN_REASSESSMENT_REVIEW.md",
+      "bytes": 9871,
+      "sha256": "4603d74ec2d50a67209e95399caf1814b8636410cb34f38401d76361d2458ddd"
+    },
+    {
+      "archive_member": "ICLR27-LearningCost-main/experiments/threshold_longrun/research/findings.md",
+      "local_file": "experiments/threshold_longrun/research/findings.md",
+      "bytes": 13656,
+      "sha256": "6925665240dbac8ed01b106c11400bd03cab3a3a1e4003e3a52877972c64dfdb"
+    }
+  ]
+}
